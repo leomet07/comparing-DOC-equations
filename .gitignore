@@ -1,0 +1,17 @@
+*.xlsx
+
+*.csv
+
+doc-data/
+
+__pycache__
+
+*.tif
+
+*.png
+
+*.jpg
+
+venv/
+
+*.~lock*

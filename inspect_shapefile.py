@@ -61,7 +61,7 @@ for site_index, site_row in site_information.iterrows():  # O(n^2)
             site_id = site_row["SITE_ID"]
 
             print(
-                f"{site_id}: Match between: SHP({shp_row["NAME"]}) and LTM_DATA({site_row["SITE_NAME"]}) | SHP_INDEX({shp_index})"
+                f"{site_id}: Match between: SHP({shp_row["NAME"]}) and LTM_DATA({site_row["SITE_NAME"]}) | SHP_INDEX({shp_index}) | SHP_OBJECTID({shp_row["OBJECTID"]})"
             )
             num_matches += 1
 

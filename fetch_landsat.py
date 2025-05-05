@@ -25,7 +25,7 @@ def visualize(tif_path: str):
         height = src.height
         width = src.width
         tags = src.tags()
-        title = f"Date: {tags["date"]}, ID: {tags["id"]}, Scale: {tags["scale"]}\n"
+        title = f"Date: {tags["date"]}, OBJECTID: {tags["objectid"]}, Scale: {tags["scale"]}\n"
 
         print(f"Number of bands: {num_bands}")
         # print(f"Dimensions: {width} x {height}")
@@ -74,11 +74,15 @@ Import assets from gee depending on which lake you want an image of
 """
 
 
-def import_assets(lakeid: int, projectName: str) -> ee.FeatureCollection:
+def import_assets(objectid: int, projectName: str) -> ee.FeatureCollection:
     LakeShp = ee.FeatureCollection(
-        f"projects/{projectName}/assets/LAGOS_NY_4ha_Polygons_v2"
+        f"projects/{projectName}/assets/195-ALTM-ALAP-lakes-withCentroid"
     )
-    LakeShp = ee.FeatureCollection(LakeShp.filter(ee.Filter.eq("lagoslakei", lakeid)))
+    LakeShp = ee.FeatureCollection(
+        LakeShp.filter(
+            ee.Filter.eq("OBJECTID", objectid)
+        )  # use SITE_ID or name to get objectid
+    )
     return LakeShp
 
 
@@ -604,7 +608,12 @@ def export_raster_main_landsat(
     with open(out_filepath, "wb") as f:
         f.write(response.content)
 
-    new_metadata = {"date": date, "id": lakeid, "scale": scale, "satellite": "landsat"}
+    new_metadata = {
+        "date": date,
+        "objectid": lakeid,
+        "scale": scale,
+        "satellite": "landsat",
+    }
     with rasterio.open(out_filepath, "r+") as dst:
         dst.update_tags(**new_metadata)
 

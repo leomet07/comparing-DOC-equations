@@ -2,6 +2,13 @@ import os
 import geopandas
 import pandas as pd
 import math
+from tqdm import tqdm
+from pprint import pprint
+import fetch_landsat
+
+PROJECT = "leomet07-waterquality"
+
+fetch_landsat.open_gee_project(project=PROJECT)
 
 shapefile_path = os.path.join("doc-data", "195-ALTM-ALAP-lakes-withCentroid.shp")
 
@@ -142,4 +149,34 @@ dates_for_woods_lake = (
 )  # ascending order
 # to check for flyovers in satellite download library
 
+# -----------------------------------------------------------------------------------
+
+# Check for sateliite flyover dates for woods lake at these dates:
+
 print("Dates to check for woods lake: ", dates_for_woods_lake)
+
+successful_tifs = []  # (date, filepath)
+
+for i in tqdm(range(len(dates_for_woods_lake))):
+    start_date = dates_for_woods_lake[i]
+    end_date = start_date + pd.DateOffset(days=1)
+
+    start_date_YYYY_MM_DD = str(start_date)[:10]  # faster than strftime
+    print("Searching for images on: ", start_date_YYYY_MM_DD)
+
+    try:
+        out_tif_filepath = fetch_landsat.export_raster_main_landsat(
+            out_dir="woods_lake_tifs",
+            out_filename=f"woods_lake_{start_date_YYYY_MM_DD}.tif",
+            project=PROJECT,
+            lakeid=298284,  # woods lake
+            start_date=start_date,
+            end_date=end_date,
+            scale=30,
+            shouldVisualize=False,
+        )
+        successful_tifs.append((start_date, out_tif_filepath))
+    except Exception as e:
+        print(e)
+
+pprint(successful_tifs)

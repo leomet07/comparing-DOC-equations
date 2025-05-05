@@ -623,6 +623,8 @@ def export_raster_main_landsat(
         print("Saved image metadata: ", new_metadata)
         visualize(out_filepath)
 
+    return out_filepath
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 8:

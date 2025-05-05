@@ -527,6 +527,7 @@ def import_collections(filter_range, LakeShp) -> ee.Image:
     # filter S2A by the filtered buffer and apply atm corr
     FC_combined = FC_combined.map(atm_corr).sort("system:time_start")
 
+    # FC_combined = FC_combined.select(["B1", "B2", "B3", "B4", "B5", "B7", "B8"]) # TODO: GET BANDS B7 and B8
     FC_combined = FC_combined.select(["B1", "B2", "B3", "B4", "B5"])
 
     return FC_combined

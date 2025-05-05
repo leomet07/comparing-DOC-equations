@@ -166,7 +166,7 @@ successful_tifs = []  # (date, filepath)
 if not os.path.exists(OUT_DIR):  # quick cache-ing
     for i in tqdm(range(len(dates_for_woods_lake))):
         start_date = dates_for_woods_lake[i]
-        end_date = start_date + pd.DateOffset(days=1)
+        end_date = start_date + pd.DateOffset(days=1) # check for 1, 3, 5 days (this is one day)
 
         start_date_YYYY_MM_DD = str(start_date)[:10]  # faster than strftime
         print("Searching for images on: ", start_date_YYYY_MM_DD)

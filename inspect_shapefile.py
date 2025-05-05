@@ -4,7 +4,9 @@ import pandas as pd
 import math
 from tqdm import tqdm
 from pprint import pprint
+import rasterio
 import fetch_landsat
+import raster_utils
 
 PROJECT = "leomet07-waterquality"
 
@@ -140,7 +142,12 @@ truth_data = truth_data[truth_data["DATE_SMP"] > "2013-02-11"]
 
 print("Truth data: ", truth_data)
 
-data_for_woods_lake = truth_data[truth_data["SITE_ID"] == "040576"]
+# ------------------------- WOODS LAKE TESTING --------------------------------------
+OUT_DIR = "woods_lake_tifs"
+LAKEOBJECTID = 298284
+LAKESITEID = "040576"
+
+data_for_woods_lake = truth_data[truth_data["SITE_ID"] == LAKESITEID]  # or use OBJECTID
 
 print(data_for_woods_lake)
 
@@ -156,27 +163,47 @@ dates_for_woods_lake = (
 print("Dates to check for woods lake: ", dates_for_woods_lake)
 
 successful_tifs = []  # (date, filepath)
+if not os.path.exists(OUT_DIR):  # quick cache-ing
+    for i in tqdm(range(len(dates_for_woods_lake))):
+        start_date = dates_for_woods_lake[i]
+        end_date = start_date + pd.DateOffset(days=1)
 
-for i in tqdm(range(len(dates_for_woods_lake))):
-    start_date = dates_for_woods_lake[i]
-    end_date = start_date + pd.DateOffset(days=1)
+        start_date_YYYY_MM_DD = str(start_date)[:10]  # faster than strftime
+        print("Searching for images on: ", start_date_YYYY_MM_DD)
 
-    start_date_YYYY_MM_DD = str(start_date)[:10]  # faster than strftime
-    print("Searching for images on: ", start_date_YYYY_MM_DD)
-
-    try:
-        out_tif_filepath = fetch_landsat.export_raster_main_landsat(
-            out_dir="woods_lake_tifs",
-            out_filename=f"woods_lake_{start_date_YYYY_MM_DD}.tif",
-            project=PROJECT,
-            lakeid=298284,  # woods lake
-            start_date=start_date,
-            end_date=end_date,
-            scale=30,
-            shouldVisualize=False,
-        )
-        successful_tifs.append((start_date, out_tif_filepath))
-    except Exception as e:
-        print(e)
+        try:
+            out_tif_filepath = fetch_landsat.export_raster_main_landsat(
+                out_dir=OUT_DIR,
+                out_filename=f"woods_lake_{start_date_YYYY_MM_DD}.tif",  # woods lake
+                project=PROJECT,
+                lakeid=LAKEOBJECTID,
+                start_date=start_date,
+                end_date=end_date,
+                scale=30,
+                shouldVisualize=False,
+            )
+            successful_tifs.append(out_tif_filepath)
+        except Exception as e:
+            print(e)
+else:
+    successful_tifs = list(
+        map(lambda filename: os.path.join(OUT_DIR, filename), os.listdir(OUT_DIR))
+    )
 
 pprint(successful_tifs)
+
+
+# ----------------------------------------------
+# Fetch at centroid
+
+for file in successful_tifs:
+    lake_info = shp_df[shp_df["OBJECTID"] == LAKEOBJECTID]
+    lat = lake_info["Lat-Cent"]
+    long = lake_info["Lon-Cent"]
+    circle_at_centroid = raster_utils.get_circular_section_from_file(
+        file, lat, long, 60
+    )  # 60m radius
+
+    pprint(circle_at_centroid)
+    # now print mean for every band
+    print("\n\n")

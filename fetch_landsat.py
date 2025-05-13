@@ -213,7 +213,7 @@ def atm_corr(img):
         .addBands(ee.Image.constant(96.04714965820312))
         .addBands(ee.Image.constant(23.8833221450863))
         .addBands(ee.Image.constant(8.04995873449635))
-        .addBands(ee.Image.constant(173.7))
+        .addBands(ee.Image.constant(173.7)) # TODO: verify 173.7 value from USGS
         .toArray()
         .toArray(1)
     )  # Example esun value for b8

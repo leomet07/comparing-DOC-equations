@@ -46,7 +46,9 @@ def visualize(tif_path: str):
         plt.show()
 
 
-def see_if_all_image_bands_valid(band_values):
+def see_if_all_image_bands_valid(band_values): # min values passed in here usually
+    for band in band_values:
+        print("band: ", band, band_values[band]) # catches that b7 is empty for some reason
     for band in band_values:
         if band_values[band] != None:
             return True
@@ -160,7 +162,7 @@ def atm_corr(img):
 
     # Radiometric Calibration
     # define bands to be converted to radiance
-    bands_OLI = ["B1", "B2", "B3", "B4", "B5", "B6", "B7"]
+    bands_OLI = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8"]
 
     # radiance_mult_bands
     rad_mult_OLI = ee.Image(
@@ -173,6 +175,7 @@ def atm_corr(img):
                 ee.Image(img.get("RADIANCE_MULT_BAND_5")),
                 ee.Image(img.get("RADIANCE_MULT_BAND_6")),
                 ee.Image(img.get("RADIANCE_MULT_BAND_7")),
+                ee.Image(img.get("RADIANCE_MULT_BAND_8")),
             ]
         )
     ).toArray(1)
@@ -188,11 +191,14 @@ def atm_corr(img):
                 ee.Image(img.get("RADIANCE_ADD_BAND_5")),
                 ee.Image(img.get("RADIANCE_ADD_BAND_6")),
                 ee.Image(img.get("RADIANCE_ADD_BAND_7")),
+                ee.Image(img.get("RADIANCE_ADD_BAND_8")),
             ]
         )
     ).toArray(1)
 
     # create an empty image to save new radiance bands to
+    # print('Bands in image:', img.bandNames())
+
     imgArr_OLI = img.select(bands_OLI).toArray().toArray(1)
     Ltoa_OLI = imgArr_OLI.multiply(rad_mult_OLI).add(rad_add_OLI)
 
@@ -207,9 +213,10 @@ def atm_corr(img):
         .addBands(ee.Image.constant(96.04714965820312))
         .addBands(ee.Image.constant(23.8833221450863))
         .addBands(ee.Image.constant(8.04995873449635))
+        .addBands(ee.Image.constant(173.7))
         .toArray()
         .toArray(1)
-    )
+    )  # Example esun value for b8
     ESUN_OLI = ESUN_OLI.multiply(ee.Image(1))
 
     ESUNImg_OLI = ESUN_OLI.arrayProject([0]).arrayFlatten([bands_OLI])
@@ -222,6 +229,7 @@ def atm_corr(img):
         .addBands(ee.Image.constant(0.1078))
         .addBands(ee.Image.constant(0.0608))
         .addBands(ee.Image.constant(0.0019))
+        .addBands(ee.Image.constant(0))
         .addBands(ee.Image.constant(0))
         .addBands(ee.Image.constant(0))
         .toArray()
@@ -252,6 +260,7 @@ def atm_corr(img):
         .addBands(ee.Image(865).divide(1000))
         .addBands(ee.Image(1609).divide(1000))
         .addBands(ee.Number(2201).divide(1000))
+        .addBands(ee.Image(590).divide(1000))
         .toArray()
         .toArray(1)
     )
@@ -379,6 +388,7 @@ def atm_corr(img):
         .addBands(ee.Image(865))
         .addBands(ee.Image(0))
         .addBands(ee.Image(0))
+        .addBands(ee.Image(0))
         .toArray()
         .toArray(1)
     )
@@ -428,7 +438,7 @@ def atm_corr(img):
 
     # Rrs
     Rrs = (
-        pw_OLI.divide(pi).arrayProject([0]).arrayFlatten([bands_OLI]).slice(0, 5)
+        pw_OLI.divide(pi).arrayProject([0]).arrayFlatten([bands_OLI]).slice(0, 8)
     ).multiply(mask)
     Rrs = Rrs.updateMask(Rrs.gt(0))
 
@@ -527,8 +537,10 @@ def import_collections(filter_range, LakeShp) -> ee.Image:
     # filter S2A by the filtered buffer and apply atm corr
     FC_combined = FC_combined.map(atm_corr).sort("system:time_start")
 
-    # FC_combined = FC_combined.select(["B1", "B2", "B3", "B4", "B5", "B7", "B8"]) # TODO: GET BANDS B7 and B8
-    FC_combined = FC_combined.select(["B1", "B2", "B3", "B4", "B5"])
+    FC_combined = FC_combined.select(
+        ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8"]
+    )  # TODO: GET BANDS B7 and B8
+    # FC_combined = FC_combined.select(["B1", "B2", "B3", "B4", "B5"])
 
     return FC_combined
 

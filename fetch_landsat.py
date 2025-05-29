@@ -46,9 +46,11 @@ def visualize(tif_path: str):
         plt.show()
 
 
-def see_if_all_image_bands_valid(band_values): # min values passed in here usually
+def see_if_all_image_bands_valid(band_values):  # min values passed in here usually
     for band in band_values:
-        print("band: ", band, band_values[band]) # catches that b7 is empty for some reason
+        print(
+            "band: ", band, band_values[band]
+        )  # catches if band is empty for some reason
     for band in band_values:
         if band_values[band] != None:
             return True
@@ -99,6 +101,10 @@ https://github.com/Nateme16/geo-aquawatch-water-quality/blob/main/Atmospheric%20
 
 
 def atm_corr(img):
+    img_b6_raw = img.select("B6")
+    img_b7_raw = img.select("B7")
+    img_b8_raw = img.select("B8")
+
     target_image_number = 1
     ozone = ee.ImageCollection("TOMS/MERGED")
     pi = ee.Image(3.141592)
@@ -213,7 +219,7 @@ def atm_corr(img):
         .addBands(ee.Image.constant(96.04714965820312))
         .addBands(ee.Image.constant(23.8833221450863))
         .addBands(ee.Image.constant(8.04995873449635))
-        .addBands(ee.Image.constant(173.7)) # TODO: verify 173.7 value from USGS
+        .addBands(ee.Image.constant(173.7))  # TODO: verify 173.7 value from USGS
         .toArray()
         .toArray(1)
     )  # Example esun value for b8
@@ -393,7 +399,7 @@ def atm_corr(img):
         .toArray(1)
     )
 
-    # Lam in SWIR bands
+    # # Lam in SWIR bands
     Lam_6_OLI = LrcImg_OLI.select("B6")
     Lam_7_OLI = LrcImg_OLI.select("B7")
 
@@ -438,11 +444,20 @@ def atm_corr(img):
 
     # Rrs
     Rrs = (
-        pw_OLI.divide(pi).arrayProject([0]).arrayFlatten([bands_OLI]).slice(0, 8)
+        pw_OLI.divide(pi)
+        .arrayProject([0])
+        .arrayFlatten([bands_OLI])
+        .slice(0, 5)  # only need b1-b5 like before, ignore b6-b8 cuz undefined
     ).multiply(mask)
     Rrs = Rrs.updateMask(Rrs.gt(0))
 
-    return Rrs.set("system:time_start", img.get("system:time_start"))
+    new_img_with_raws = (
+        Rrs.addBands(img_b6_raw, overwrite=True)
+        .addBands(img_b7_raw, overwrite=True)
+        .addBands(img_b8_raw, overwrite=True)
+    )
+
+    return new_img_with_raws.set("system:time_start", img.get("system:time_start"))
 
 
 """## Creating mask functions

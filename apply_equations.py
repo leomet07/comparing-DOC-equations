@@ -1,0 +1,37 @@
+import tqdm
+import rasterio
+import numpy as np
+import os
+from matplotlib import pyplot as plt
+
+
+def apply_equation_to_tif(tif_path):
+    with rasterio.open(tif_path) as src:
+        band3 = src.read(3)
+        band4 = src.read(4)
+        band5 = src.read(5)
+
+        ratio3to5 = band3 / band5
+
+        b0 = 23.5
+        b1 = -36
+        b2 = 0.004
+
+        y = b0 + b1 * (ratio3to5) + b2 * (band4)
+        return y  # this is ln(a440)
+
+
+tif_folder = "woods_lake_tifs"
+
+for filename in os.listdir(tif_folder):
+    tif_filepath = os.path.join(tif_folder, filename)
+
+    output_ln_a440 = apply_equation_to_tif(tif_filepath)
+    a440 = np.exp(
+        output_ln_a440
+    )  # a440 is absorptivity of filtered water at 440nm wavelength, a measure of CDOM
+    fig = plt.figure(figsize=(10, 8))
+    plt.imshow(a440, cmap="viridis", interpolation="none")
+    plt.colorbar()
+    plt.axis("off")
+    plt.show()

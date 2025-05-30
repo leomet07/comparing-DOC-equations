@@ -3,6 +3,7 @@ import rasterio
 import numpy as np
 import os
 from matplotlib import pyplot as plt
+import inspect_shapefile
 
 
 def apply_equation_to_tif(tif_path):
@@ -29,6 +30,9 @@ tif_folder = "woods_lake_tifs"
 
 display = False
 
+predicted_a440_values = []
+doc_values = []
+
 for filename in os.listdir(tif_folder):
     tif_filepath = os.path.join(tif_folder, filename)
 
@@ -36,6 +40,13 @@ for filename in os.listdir(tif_folder):
     a440 = np.exp(
         output_ln_a440
     )  # a440 is absorptivity of filtered water at 440nm wavelength, a measure of CDOM
+
+    # matched doc
+    doc = inspect_shapefile.truth_data[
+        (inspect_shapefile.truth_data["OBJECTID"] == float(objectid))
+        & (inspect_shapefile.truth_data["DATE_SMP"] == date)
+    ]["DOC_MG_L"].item()
+    print(doc)
 
     if display:
         title = f"Prediction for Lake-OID-{objectid} on {date}"

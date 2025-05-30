@@ -27,6 +27,8 @@ def apply_equation_to_tif(tif_path):
 
 tif_folder = "woods_lake_tifs"
 
+display = False
+
 for filename in os.listdir(tif_folder):
     tif_filepath = os.path.join(tif_folder, filename)
 
@@ -34,10 +36,12 @@ for filename in os.listdir(tif_folder):
     a440 = np.exp(
         output_ln_a440
     )  # a440 is absorptivity of filtered water at 440nm wavelength, a measure of CDOM
-    title = f"Prediction for Lake-OID-{objectid} on {date}"
-    fig = plt.figure(title, figsize=(10, 8))
-    plt.imshow(a440, cmap="viridis", interpolation="none")
-    plt.title(title)
-    plt.colorbar()
-    plt.axis("off")
-    plt.show()
+
+    if display:
+        title = f"Prediction for Lake-OID-{objectid} on {date}"
+        fig = plt.figure(title, figsize=(10, 8))
+        plt.imshow(a440, cmap="viridis", interpolation="none")
+        plt.title(title)
+        plt.colorbar()
+        plt.axis("off")
+        plt.show()

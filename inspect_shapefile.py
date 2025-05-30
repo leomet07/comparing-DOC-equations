@@ -80,6 +80,7 @@ for site_index, site_row in site_information.iterrows():  # O(n^2)
 
 print("# of matches: ", num_matches)
 
+"""
 # ---------------------- Identify some good testing lakes ------------------------------------
 # Testing Lakes
 
@@ -127,6 +128,7 @@ for name_of_interest in lake_names_of_interest:
 print(valid_tuples_of_interest)
 
 print()
+"""
 # -----------------------------------------------------------------------------------
 
 
@@ -140,8 +142,12 @@ truth_data = truth_data[
 
 truth_data = truth_data[truth_data["DATE_SMP"] > "2013-02-11"]
 
-print("Truth data: ", truth_data)
+# Merge in shp file (object ids, centroids) into truth_data
+truth_data = truth_data.merge(shp_df, left_on="SITE_ID", right_on="SITE_ID")
 
+print("Truth data: \n", truth_data)
+
+"""
 # ------------------------- WOODS LAKE TESTING --------------------------------------
 OUT_DIR = "woods_lake_tifs"
 LAKEOBJECTID = 298284
@@ -209,3 +215,4 @@ for file in successful_tifs:
     pprint(circle_at_centroid)
     # now print mean for every band
     print("\n\n")
+"""

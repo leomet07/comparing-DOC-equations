@@ -6,6 +6,7 @@ from matplotlib import pyplot as plt
 import inspect_shapefile
 from shapely.geometry import Point
 from sklearn.metrics import r2_score
+import rasterio.features
 
 
 def apply_equation_to_tif(tif_path):
@@ -15,7 +16,7 @@ def apply_equation_to_tif(tif_path):
         tags = src.tags()
         scale = tags["scale"]
         x_res = src.res[0]  # same as src.res[1]
-        date = tags["date"]
+        closest_insitu_date = tags["closest_insitu_date"]
         objectid = tags["objectid"]
 
         band3 = src.read(3)
@@ -35,14 +36,14 @@ def apply_equation_to_tif(tif_path):
             transform,
             scale,
             x_res,
-            date,
+            closest_insitu_date,
             objectid,
-        )  # this is raster-of-ln(a440), date, objectid
+        )
 
 
-tif_folder = "woods_lake_tifs"
+tif_folder = "big_moose_lake_tifs"
 
-display = False
+display = True
 
 doc_values = []
 predicted_a440_values = []
@@ -50,7 +51,7 @@ predicted_a440_values = []
 for filename in os.listdir(tif_folder):
     tif_filepath = os.path.join(tif_folder, filename)
 
-    output_ln_a440, profile, transform, scale, x_res, date, objectid = (
+    output_ln_a440, profile, transform, scale, x_res, closest_insitu_date, objectid = (
         apply_equation_to_tif(tif_filepath)
     )
 
@@ -59,17 +60,19 @@ for filename in os.listdir(tif_folder):
     )  # a440 is absorptivity of filtered water at 440nm wavelength, a measure of CDOM, proportional to DOC
 
     # matched doc
-    doc = inspect_shapefile.truth_data[
+    all_doc = inspect_shapefile.truth_data[
         (inspect_shapefile.truth_data["OBJECTID"] == float(objectid))
-        & (inspect_shapefile.truth_data["DATE_SMP"] == date)
-    ]["DOC_MG_L"].item()
+        & (inspect_shapefile.truth_data["DATE_SMP"] == closest_insitu_date)
+    ]["DOC_MG_L"]
+    print("Alldoc:\n", all_doc)
+    doc = all_doc.item()
     centroid_lat = inspect_shapefile.truth_data[
         (inspect_shapefile.truth_data["OBJECTID"] == float(objectid))
-        & (inspect_shapefile.truth_data["DATE_SMP"] == date)
+        & (inspect_shapefile.truth_data["DATE_SMP"] == closest_insitu_date)
     ]["Lat-Cent"].item()
     centroid_long = inspect_shapefile.truth_data[
         (inspect_shapefile.truth_data["OBJECTID"] == float(objectid))
-        & (inspect_shapefile.truth_data["DATE_SMP"] == date)
+        & (inspect_shapefile.truth_data["DATE_SMP"] == closest_insitu_date)
     ]["Lon-Cent"].item()
 
     radius_in_meters = 60
@@ -81,11 +84,11 @@ for filename in os.listdir(tif_folder):
         [circle], a440.shape, transform
     )
 
-    a440[outside_circle_mask] = np.nan
+    # a440[outside_circle_mask] qqqq= np.nan
     # copy over geo data from tif to output, then get circle of output and take average
 
     if display:
-        title = f"Prediction for Lake-OID-{objectid} on {date}"
+        title = f"Prediction for Lake-OID-{objectid} on {closest_insitu_date}"
         fig = plt.figure(title, figsize=(10, 8))
         plt.imshow(a440, cmap="viridis", interpolation="none")
         plt.title(title)
@@ -96,6 +99,8 @@ for filename in os.listdir(tif_folder):
     mean_a440 = np.nanmean(a440)
 
     print(doc, mean_a440)
+    if not np.isfinite(mean_a440):  # nanmean can return inf or nan
+        continue
     doc_values.append(doc)  # true value
     predicted_a440_values.append(mean_a440)  # predicted value
 

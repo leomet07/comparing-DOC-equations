@@ -41,7 +41,7 @@ def apply_equation_to_tif(tif_path):
         )
 
 
-tif_folder = "big_moose_lake_tifs"
+tif_folder = "queer_lake_tifs"
 
 display = True
 
@@ -64,8 +64,9 @@ for filename in os.listdir(tif_folder):
         (inspect_shapefile.truth_data["OBJECTID"] == float(objectid))
         & (inspect_shapefile.truth_data["DATE_SMP"] == closest_insitu_date)
     ]["DOC_MG_L"]
-    print("Alldoc:\n", all_doc)
     doc = all_doc.item()
+
+    # get lat and long
     centroid_lat = inspect_shapefile.truth_data[
         (inspect_shapefile.truth_data["OBJECTID"] == float(objectid))
         & (inspect_shapefile.truth_data["DATE_SMP"] == closest_insitu_date)
@@ -84,7 +85,7 @@ for filename in os.listdir(tif_folder):
         [circle], a440.shape, transform
     )
 
-    # a440[outside_circle_mask] qqqq= np.nan
+    a440[outside_circle_mask] = np.nan
     # copy over geo data from tif to output, then get circle of output and take average
 
     if display:

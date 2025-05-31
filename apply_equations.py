@@ -5,6 +5,7 @@ import os
 from matplotlib import pyplot as plt
 import inspect_shapefile
 from shapely.geometry import Point
+from sklearn.metrics import r2_score
 
 
 def apply_equation_to_tif(tif_path):
@@ -41,10 +42,10 @@ def apply_equation_to_tif(tif_path):
 
 tif_folder = "woods_lake_tifs"
 
-display = True
+display = False
 
-predicted_a440_values = []
 doc_values = []
+predicted_a440_values = []
 
 for filename in os.listdir(tif_folder):
     tif_filepath = os.path.join(tif_folder, filename)
@@ -95,3 +96,8 @@ for filename in os.listdir(tif_folder):
     mean_a440 = np.nanmean(a440)
 
     print(doc, mean_a440)
+    doc_values.append(doc)  # true value
+    predicted_a440_values.append(mean_a440)  # predicted value
+
+r2 = r2_score(doc_values, predicted_a440_values)
+print("R2 score: ", r2)

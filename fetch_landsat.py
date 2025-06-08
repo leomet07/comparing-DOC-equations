@@ -47,10 +47,10 @@ def visualize(tif_path: str):
 
 
 def see_if_all_image_bands_valid(band_values):  # min values passed in here usually
-    for band in band_values:
-        print(
-            "band: ", band, band_values[band]
-        )  # catches if band is empty for some reason
+    # for band in band_values:
+    #     print(
+    #         "band: ", band, band_values[band]
+    #     )  # catches if band is empty for some reason
     for band in band_values:
         if band_values[band] != None:
             return True
@@ -646,9 +646,9 @@ def export_raster_main_landsat(
     with rasterio.open(out_filepath, "r+") as dst:
         dst.update_tags(**new_metadata)
 
-    print(f"Image saved to {out_filepath}")
 
     if shouldVisualize:
+        print(f"Image saved to {out_filepath}")
         print("Saved image metadata: ", new_metadata)
         visualize(out_filepath)
 

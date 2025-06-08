@@ -72,7 +72,7 @@ for site_index, site_row in site_information.iterrows():  # O(n^2)
 
 print("# of matches: ", num_matches)
 
-"""
+
 # ---------------------- Identify some good testing lakes ------------------------------------
 # Testing Lakes
 
@@ -98,7 +98,7 @@ lake_names_of_interest = [  # these match SHP file
     "South Lake",  # missing matched site_id
 ]
 
-valid_tuples_of_interest = []
+lake_infos_of_interest = []
 
 for name_of_interest in lake_names_of_interest:
     matched_lakes_in_joined_shp_file = shp_df[shp_df["NAME"] == name_of_interest]
@@ -113,14 +113,18 @@ for name_of_interest in lake_names_of_interest:
         print(f'Lake of interest with name "{name_of_interest}" not found. ')
         continue
 
-    valid_tuples_of_interest.append(
-        (matched_lakes_in_joined_shp_file.iloc[0]["SITE_ID"], name_of_interest)
+    lake_infos_of_interest.append(
+        {
+            "SITE_ID": matched_lakes_in_joined_shp_file.iloc[0]["SITE_ID"],
+            "OBJECTID": matched_lakes_in_joined_shp_file.iloc[0]["OBJECTID"],
+            "NAME": name_of_interest,
+        }
     )
 
-print(valid_tuples_of_interest)
+print(lake_infos_of_interest)
 
 print()
-"""
+
 # -----------------------------------------------------------------------------------
 
 

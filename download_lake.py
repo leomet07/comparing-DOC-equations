@@ -6,13 +6,10 @@ import fetch_landsat
 from pprint import pprint
 import multiprocessing
 import random
-
-PROJECT = "leomet07-waterquality"
-
-fetch_landsat.open_gee_project(project=PROJECT)
+import sys
 
 
-def gen_all_lakes_all_dates_params(OUT_DIR):
+def gen_all_lakes_all_dates_params(project, OUT_DIR, days_after_insitu: int):
     all_params = []
     for lake_info in inspect_shapefile.lake_infos_of_interest:
         lake_name = lake_info["NAME"].lower().replace(" ", "_")
@@ -32,7 +29,7 @@ def gen_all_lakes_all_dates_params(OUT_DIR):
         for i in range(len(dates_for_lake)):
             start_date = dates_for_lake[i]
             end_date = start_date + pd.DateOffset(
-                days=5
+                days=days_after_insitu
             )  # check for 1, 3, 5 days (this is one day)
 
             start_date_YYYY_MM_DD = str(start_date)[:10]  # faster than strftime
@@ -43,7 +40,7 @@ def gen_all_lakes_all_dates_params(OUT_DIR):
                 (
                     lake_out_dir_path,
                     out_filename,
-                    PROJECT,
+                    project,
                     lake_objectid,
                     start_date,
                     end_date,
@@ -62,11 +59,19 @@ def wrapper_export(
 
 
 if __name__ == "__main__":
+    project = sys.argv[1]
+    out_dir = sys.argv[2]
+    days_after_insitu = int(sys.argv[3])
+
+    fetch_landsat.open_gee_project(project=project)
+
     manager = multiprocessing.Manager()
     scale_cache = manager.dict()  # empty by default
     pool = multiprocessing.Pool(25)
 
-    all_params_to_pass_in = gen_all_lakes_all_dates_params("TEST")
+    all_params_to_pass_in = gen_all_lakes_all_dates_params(
+        project, out_dir, days_after_insitu
+    )
 
     random.shuffle(all_params_to_pass_in)
 

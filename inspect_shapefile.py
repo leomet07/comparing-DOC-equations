@@ -8,9 +8,6 @@ shapefile_path = os.path.join("doc-data", "195-ALTM-ALAP-lakes-withCentroid.shp"
 
 shp_df = geopandas.read_file(shapefile_path)
 
-# print(shp_df)
-# print(shp_df.columns)
-
 shp_df = shp_df[
     [
         "OBJECTID",
@@ -36,18 +33,12 @@ shp_df = shp_df[
     ]
 ]
 
-
-shp_df.to_csv("195_lake_shapefile.csv")
-
 # Site information
 
 site_information = pd.read_excel(os.path.join("ALTM", "Site_Information_2022_8_1.xlsx"))
 
 # filter so that program_id = LTM_ALTM
 site_information = site_information[site_information["PROGRAM_ID"] == "LTM_ALTM"]
-
-# print(site_information)
-# print(site_information.columns)
 
 num_matches = 0
 # now match shp file centroid to site information
@@ -74,9 +65,6 @@ print("# of matches: ", num_matches)
 
 
 # ---------------------- Identify some good testing lakes ------------------------------------
-# Testing Lakes
-
-print()
 
 lake_names_of_interest = [  # these match SHP file
     "Woods Lake",
@@ -121,12 +109,7 @@ for name_of_interest in lake_names_of_interest:
         }
     )
 
-print(lake_infos_of_interest)
-
-print()
-
 # -----------------------------------------------------------------------------------
-
 
 truth_data = pd.read_excel(os.path.join("ALTM", "LTM_Data_2023_3_9.xlsx"))
 

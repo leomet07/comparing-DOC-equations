@@ -8,6 +8,7 @@ from shapely.geometry import Point
 from sklearn.metrics import r2_score
 import rasterio.features
 import warnings
+from sklearn.linear_model import LinearRegression
 
 
 def apply_equation_to_tif(tif_path):
@@ -29,11 +30,11 @@ def apply_equation_to_tif(tif_path):
                 band3 / band5
             )  # masked out parts may be nan, dividing nan by nan is invalid
 
-            b0 = 23.5
-            b1 = -36
-            b2 = 0.004
+            # b0 = 23.5
+            # b1 = -36
+            # b2 = 0.004
 
-            y = b0 + b1 * (ratio3to5) + b2 * (band4)
+            y = ratio3to5
 
         return (
             y,
@@ -51,7 +52,7 @@ out_folder = "all_lake_images"
 display = False
 
 for subfolder in os.listdir(out_folder):
-    doc_values = []
+    true_doc_values = []
     predicted_a440_values = []
 
     tif_folder_path = os.path.join(out_folder, subfolder)
@@ -70,7 +71,7 @@ for subfolder in os.listdir(out_folder):
         ) = apply_equation_to_tif(tif_filepath)
 
         a440 = np.exp(
-            output_ln_a440
+            output_ln_a440.astype(np.float128)
         )  # a440 is absorptivity of filtered water at 440nm wavelength, a measure of CDOM, proportional to DOC
 
         # matched doc
@@ -131,8 +132,33 @@ for subfolder in os.listdir(out_folder):
             continue
 
         # only append finite values to r2 comparison
-        doc_values.append(doc)  # true value
+        true_doc_values.append(doc)  # true value
         predicted_a440_values.append(mean_a440)  # predicted value
 
-    r2 = r2_score(doc_values, predicted_a440_values)
-    print(f"R2 score for {subfolder}: ", r2)
+    true_doc_values = np.array(true_doc_values)
+
+    X = np.array(predicted_a440_values).reshape(-1, 1)
+    # see slope of line of best fit
+    reg = LinearRegression().fit(
+        X, true_doc_values
+    )  # .reshape(-1, 1) because there is only one feature
+
+    regression_r2_score = reg.score(
+        X, predicted_a440_values
+    )  # with proper slope applied
+
+    base_r2 = r2_score(true_doc_values, predicted_a440_values)
+    print(
+        f"{regression_r2_score:.3f} is the r2 of scaled a440 to DOC for {subfolder} (Raw R2 score is {base_r2:.3f})"
+    )
+
+    """
+    # plot all values
+    plt.scatter(predicted_a440_values, true_doc_values)  # band ratio to a440
+    plt.plot(
+        predicted_a440_values, reg.predict(X)
+    )  # plot line of best fit of a440 to true doc
+    plt.xlabel("predicted a440")
+    plt.ylabel("DOC")
+    plt.show()
+    """

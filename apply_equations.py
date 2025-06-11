@@ -21,6 +21,9 @@ def get_ratio_from_tif(tif_path):
         closest_insitu_date = tags["closest_insitu_date"]
         objectid = tags["objectid"]
 
+        band1 = src.read(1)
+        band2 = src.read(2)
+        band3 = src.read(3)
         band3 = src.read(3)
         band4 = src.read(4)
         band5 = src.read(5)
@@ -30,14 +33,12 @@ def get_ratio_from_tif(tif_path):
                 band3 / band5
             )  # masked out parts may be nan, dividing nan by nan is invalid
 
-            # b0 = 23.5
-            # b1 = -36
-            # b2 = 0.004
-
-            y = ratio3to5
+            ratio1to4 = band1 / band4
+            ratio2to4 = band2 / band4
 
         return (
-            y,
+            ratio1to4,
+            ratio2to4,
             profile,
             transform,
             scale,
@@ -53,7 +54,8 @@ display = False
 
 for subfolder in os.listdir(out_folder):
     true_doc_values = []
-    predicted_ratio_ln_a440_values = []
+    ratio_1_values = []
+    ratio_2_values = []
 
     tif_folder_path = os.path.join(out_folder, subfolder)
 
@@ -61,7 +63,8 @@ for subfolder in os.listdir(out_folder):
         tif_filepath = os.path.join(tif_folder_path, filename)
 
         (
-            output_ratio,
+            output_ratio_1,
+            output_ratio_2,
             profile,
             transform,
             scale,
@@ -69,8 +72,6 @@ for subfolder in os.listdir(out_folder):
             closest_insitu_date,
             objectid,
         ) = get_ratio_from_tif(tif_filepath)
-
-        ratio_ln_a440 = output_ratio
 
         # a440 is absorptivity of filtered water at 440nm wavelength, a measure of CDOM, proportional to DOC
 
@@ -107,10 +108,11 @@ for subfolder in os.listdir(out_folder):
         )  # however many x_res sized pixels needed for buffer of radius at downloaded scale
 
         outside_circle_mask = rasterio.features.geometry_mask(
-            [circle], ratio_ln_a440.shape, transform
+            [circle], output_ratio_1.shape, transform
         )
 
-        ratio_ln_a440[outside_circle_mask] = np.nan
+        output_ratio_1[outside_circle_mask] = np.nan
+        output_ratio_2[outside_circle_mask] = np.nan
         # copy over geo data from tif to output, then get circle of output and take average
 
         if display:
@@ -124,35 +126,38 @@ for subfolder in os.listdir(out_folder):
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)
-            mean_ratio_ln_a440 = np.nanmean(ratio_ln_a440)
+            mean_output_ratio_1 = np.nanmean(output_ratio_1)
+            mean_output_ratio_2 = np.nanmean(output_ratio_2)
 
-        if not np.isfinite(
-            mean_ratio_ln_a440
+        if not np.isfinite(mean_output_ratio_1) or not np.isfinite(
+            mean_output_ratio_2
         ):  # nanmean can return inf or nan if array is all nans
             continue
 
         # only append finite values to r2 comparison
         true_doc_values.append(doc)  # true value
-        predicted_ratio_ln_a440_values.append(mean_ratio_ln_a440)  # predicted value
+        ratio_1_values.append(mean_output_ratio_1)  # predicted value
+        ratio_2_values.append(mean_output_ratio_2)  # predicted value
 
     true_doc_values = np.array(true_doc_values)
     true_ln_doc_values = np.log(true_doc_values)  # base e
 
-    X = np.array(predicted_ratio_ln_a440_values).reshape(-1, 1)
+    # X = np.array(predicted_ratio_ln_a440_values).reshape(-1, 1)
+    X = np.stack((ratio_1_values, ratio_2_values), axis=1)
+
     # see slope of line of best fit
     reg = LinearRegression().fit(
         X, true_ln_doc_values
     )  # .reshape(-1, 1) because there is only one feature
 
-    regression_r2_score = reg.score(
-        X, predicted_ratio_ln_a440_values
-    )  # with proper slope applied
+    regression_r2_score = reg.score(X, true_ln_doc_values)  # with proper slope applied
 
-    base_r2 = r2_score(true_ln_doc_values, predicted_ratio_ln_a440_values)
+    # base_r2 = r2_score(true_ln_doc_values, predicted_ratio_ln_a440_values)
     print(
-        f"{regression_r2_score:.3f} is the r2 of scaled ln-a440 to ln-DOC for {subfolder} (Raw R2 score is {base_r2:.3f})"
+        f"{regression_r2_score:.3f} is the r2 of scaled ln-a440 to ln-DOC for {subfolder}"
     )
 
+    """
     # plot all values
     plt.scatter(
         predicted_ratio_ln_a440_values, true_ln_doc_values
@@ -163,3 +168,4 @@ for subfolder in os.listdir(out_folder):
     plt.xlabel("predicted a440")
     plt.ylabel("DOC")
     plt.show()
+    """

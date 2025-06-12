@@ -473,14 +473,18 @@ def maskL8sr(image):
     cloudShadowBitMask = 1 << 3
     cloudsBitMask = 1 << 4
     cirrusBitMask = 1 << 2
+    waterBitMask = 1 << 7  # 1 means water
+
     # Get the pixel QA band.
     qa = image.select("QA_PIXEL")
     # Both flags should be set to zero, indicating clear conditions.
     mask = (
         qa.bitwiseAnd(cloudShadowBitMask)
         .eq(0)
-        .And(qa.bitwiseAnd(cloudsBitMask).eq(0))
+        .And(qa.bitwiseAnd(cloudsBitMask).eq(0))  # want not high cloud confidence
         .And(qa.bitwiseAnd(cirrusBitMask).eq(0))
+        .And(qa.bitwiseAnd(waterBitMask).neq(0))  # keep water
+        # tho question, if 1 is water, then why is this working if we are keeping it when it is zero(land)
     )
     return image.updateMask(mask)
 
@@ -565,6 +569,8 @@ def get_image_and_date_from_image_collection(coll, index, shp):
     date = ee.Date(image.get("system:time_start")).format("YYYY-MM-dd").getInfo()
     image = image.clip(shp)
     image = image.toFloat()
+
+    print(image.get("system:id").getInfo())
     return image, date
 
 
@@ -614,6 +620,8 @@ def export_raster_main_landsat(
         start_date=start_date, end_date=end_date, LakeShp=LakeShp, scale=scale
     )
 
+    print(image.id().getInfo())
+
     url = image.getDownloadURL(
         {
             "format": "GEO_TIFF",
@@ -645,7 +653,6 @@ def export_raster_main_landsat(
     }
     with rasterio.open(out_filepath, "r+") as dst:
         dst.update_tags(**new_metadata)
-
 
     if shouldVisualize:
         print(f"Image saved to {out_filepath}")

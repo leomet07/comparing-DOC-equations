@@ -11,7 +11,15 @@ import warnings
 from sklearn.linear_model import LinearRegression
 
 
-def get_ratio_from_tif(tif_path):
+def get_3_5_ratio(bands):
+    return bands[2] / bands[4]  # zero-indexed
+
+
+def get_3_4_ratio(bands):
+    return bands[2] / bands[3]  # zero-indexed
+
+
+def get_ratio_from_tif(tif_path, equation_functions):
     with rasterio.open(tif_path) as src:
         profile = src.profile  # Get the profile of the existing raster
         transform = src.transform
@@ -21,23 +29,16 @@ def get_ratio_from_tif(tif_path):
         closest_insitu_date = tags["closest_insitu_date"]
         objectid = tags["objectid"]
 
-        band3 = src.read(3)
-        band4 = src.read(4)
-        band5 = src.read(5)
+        bands = src.read()
+
+        ratios = []
 
         with np.errstate(divide="ignore", invalid="ignore"):
-            ratio3to5 = (
-                band3 / band5
-            )  # masked out parts may be nan, dividing nan by nan is invalid
-
-            # b0 = 23.5
-            # b1 = -36
-            # b2 = 0.004
-
-            y = ratio3to5
+            for equation_function in equation_functions:
+                ratios.append(equation_function(bands))
 
         return (
-            y,
+            ratios,
             profile,
             transform,
             scale,
@@ -51,9 +52,13 @@ out_folder = "all_lake_images"
 
 display = False
 
+equation_functions = [get_3_5_ratio, get_3_4_ratio]
+
 for subfolder in os.listdir(out_folder):
     true_doc_values = []
-    predicted_ratio_ln_a440_values = []
+    predicted_ratio_ln_a440_value_by_equation = list(
+        map(lambda x: [], equation_functions)
+    )  # index 0 corresponds with first equation, 1 with second, etc...
 
     tif_folder_path = os.path.join(out_folder, subfolder)
 
@@ -61,16 +66,14 @@ for subfolder in os.listdir(out_folder):
         tif_filepath = os.path.join(tif_folder_path, filename)
 
         (
-            output_ratio,
+            ratios,
             profile,
             transform,
             scale,
             x_res,
             closest_insitu_date,
             objectid,
-        ) = get_ratio_from_tif(tif_filepath)
-
-        ratio_ln_a440 = output_ratio
+        ) = get_ratio_from_tif(tif_filepath, equation_functions)
 
         # a440 is absorptivity of filtered water at 440nm wavelength, a measure of CDOM, proportional to DOC
 
@@ -107,10 +110,14 @@ for subfolder in os.listdir(out_folder):
         )  # however many x_res sized pixels needed for buffer of radius at downloaded scale
 
         outside_circle_mask = rasterio.features.geometry_mask(
-            [circle], ratio_ln_a440.shape, transform
+            [circle], ratios[0].shape, transform
         )
 
-        ratio_ln_a440[outside_circle_mask] = np.nan
+        for ratio in ratios:
+            ratio[outside_circle_mask] = (
+                np.nan
+            )  # arrays store pointer to ratio array, this is okay bc just a mutation
+
         # copy over geo data from tif to output, then get circle of output and take average
 
         if display:
@@ -122,44 +129,59 @@ for subfolder in os.listdir(out_folder):
             plt.axis("off")
             plt.show()
 
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=RuntimeWarning)
-            mean_ratio_ln_a440 = np.nanmean(ratio_ln_a440)
+        is_mean_ratio_nan = False
+        for ratio_index in range(len(ratios)):
+            ratio = ratios[ratio_index]
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=RuntimeWarning)
+                mean_ratio_ln_a440 = np.nanmean(ratio)
 
-        if not np.isfinite(
-            mean_ratio_ln_a440
-        ):  # nanmean can return inf or nan if array is all nans
-            continue
+            if not np.isfinite(
+                mean_ratio_ln_a440
+            ):  # nanmean can return inf or nan if array is all nans
+                is_mean_ratio_nan = (
+                    True  # hopefully if one is nan, all the rest are nan too
+                )
+                break
 
-        # only append finite values to r2 comparison
-        true_doc_values.append(doc)  # true value
-        predicted_ratio_ln_a440_values.append(mean_ratio_ln_a440)  # predicted value
+            predicted_ratio_ln_a440_value_by_equation[ratio_index].append(
+                mean_ratio_ln_a440
+            )  # predicted value
+
+        if not is_mean_ratio_nan:
+            # only append finite values to r2 comparison
+            true_doc_values.append(doc)
 
     true_doc_values = np.array(true_doc_values)
     true_ln_doc_values = np.log(true_doc_values)  # base e
 
-    X = np.array(predicted_ratio_ln_a440_values).reshape(-1, 1)
-    # see slope of line of best fit
-    reg = LinearRegression().fit(
-        X, true_ln_doc_values
-    )  # .reshape(-1, 1) because there is only one feature
+    for i in range(len(equation_functions)):
+        predicted_ratio_ln_a440_values = predicted_ratio_ln_a440_value_by_equation[i]
 
-    regression_r2_score = reg.score(
-        X, predicted_ratio_ln_a440_values
-    )  # with proper slope applied
+        X = np.array(predicted_ratio_ln_a440_values).reshape(-1, 1)
 
-    base_r2 = r2_score(true_ln_doc_values, predicted_ratio_ln_a440_values)
-    print(
-        f"{regression_r2_score:.3f} is the r2 of scaled ln-a440 to ln-DOC for {subfolder} (Raw R2 score is {base_r2:.3f})"
-    )
+        # see slope of line of best fit
+        reg = LinearRegression().fit(
+            X, true_ln_doc_values
+        )  # .reshape(-1, 1) because there is only one feature
 
-    # plot all values
-    plt.scatter(
-        predicted_ratio_ln_a440_values, true_ln_doc_values
-    )  # band ratio to a440
-    plt.plot(
-        predicted_ratio_ln_a440_values, reg.predict(X)
-    )  # plot line of best fit of a440 to true doc
-    plt.xlabel("predicted a440")
-    plt.ylabel("DOC")
-    plt.show()
+        regression_r2_score = reg.score(
+            X, predicted_ratio_ln_a440_values
+        )  # with proper slope applied
+
+        base_r2 = r2_score(true_ln_doc_values, predicted_ratio_ln_a440_values)
+        print(
+            f"EQUATION INDEX ({i})| {regression_r2_score:.3f} is the r2 of scaled ln-a440 to ln-DOC for {subfolder} (Raw R2 score is {base_r2:.3f})"
+        )
+
+        if display:
+            # plot all values
+            plt.scatter(
+                predicted_ratio_ln_a440_values, true_ln_doc_values
+            )  # band ratio to a440
+            plt.plot(
+                predicted_ratio_ln_a440_values, reg.predict(X)
+            )  # plot line of best fit of a440 to true doc
+            plt.xlabel("predicted a440")
+            plt.ylabel("DOC")
+            plt.show()

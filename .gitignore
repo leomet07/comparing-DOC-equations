@@ -17,3 +17,5 @@ venv/
 *.~lock*
 
 *.sh
+
+*.ods

@@ -1,6 +1,7 @@
 import tqdm
 import rasterio
 import numpy as np
+import pandas as pd
 import os
 from matplotlib import pyplot as plt
 import inspect_shapefile
@@ -83,6 +84,7 @@ out_folder = "all_lake_images"
 
 display = False
 
+results = []
 
 for subfolder in os.listdir(out_folder):
     true_doc_values = []
@@ -199,6 +201,7 @@ for subfolder in os.listdir(out_folder):
     true_doc_values = np.array(true_doc_values)
     true_ln_doc_values = np.log(true_doc_values)  # base e
 
+    this_result = []
     for i in range(len(equation_functions)):
         predicted_ratio_ln_a440_values = predicted_ratio_ln_a440_value_by_equation[i]
 
@@ -218,9 +221,10 @@ for subfolder in os.listdir(out_folder):
             X, true_ln_doc_values
         )  # with proper slope applied
 
-        print(
-            f"EQUATION INDEX ({i})| {regression_r2_score:.3f} is the r2 of scaled ln-a440 to ln-DOC for {subfolder}"
-        )
+        this_result.append(regression_r2_score)
+        # print(
+        #     f"EQUATION INDEX ({i})| {regression_r2_score:.3f} is the r2 of scaled ln-a440 to ln-DOC for {subfolder}"
+        # )
 
         if display:
             # plot all values
@@ -233,3 +237,35 @@ for subfolder in os.listdir(out_folder):
             plt.xlabel("predicted a440")
             plt.ylabel("DOC")
             plt.show()
+
+    proper_lake_name = inspect_shapefile.shp_df[
+        inspect_shapefile.shp_df["OBJECTID"] == float(objectid)
+    ]["NAME"].iloc[0]
+
+    this_result.append(len(true_ln_doc_values))
+    this_result.append(
+        objectid
+    )  # latest object id should be same as all other object ids for this subfolder
+    this_result.append(
+        proper_lake_name
+    )  # latest object id should be same as all other object ids for this subfolder
+
+    results.append(this_result)
+
+results_df = pd.DataFrame.from_records(results)
+results_df.columns = [
+    "3_5_ratio",
+    "ln_2_5_ratio",
+    "2_5_ratio",
+    "3_4_ratio",
+    "1_4_ratio_and_2_4_ratio",
+    "1_4_ratio_and_3_4_ratio",
+    "3_4_ratio_and_4_5_ratio",
+    "number_truth_values",
+    "objectid",
+    "name",
+]
+
+results_df.to_csv("results.csv")
+
+print("Results: \n", results_df)

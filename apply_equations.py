@@ -27,7 +27,17 @@ def get_3_4_ratio(bands):
     return bands[2] / bands[3]  # zero-indexed
 
 
-equation_functions = [get_3_5_ratio, get_ln_2_5_ratio, get_2_5_ratio, get_3_4_ratio]
+def get_1_4_ratio_and_2_4_ratio(bands):
+    return (bands[0] / bands[3]), (bands[1] / bands[3])  # zero-indexed
+
+
+equation_functions = [
+    get_3_5_ratio,
+    get_ln_2_5_ratio,
+    get_2_5_ratio,
+    get_3_4_ratio,
+    get_1_4_ratio_and_2_4_ratio,
+]
 
 
 def get_ratio_from_tif(tif_path, equation_functions):
@@ -124,9 +134,15 @@ for subfolder in os.listdir(out_folder):
         )
 
         for ratio in ratios:
-            ratio[outside_circle_mask] = (
-                np.nan
-            )  # arrays store pointer to ratio array, this is okay bc just a mutation
+            if type(ratio) is tuple:  # multi vaiable
+                for subratio in ratio:
+                    subratio[outside_circle_mask] = (
+                        np.nan
+                    )  # arrays store pointer to ratio array, this is okay bc just a mutation
+            else:
+                ratio[outside_circle_mask] = (
+                    np.nan
+                )  # arrays store pointer to ratio array, this is okay bc just a mutation
 
         # copy over geo data from tif to output, then get circle of output and take average
 
@@ -145,10 +161,15 @@ for subfolder in os.listdir(out_folder):
             ratio = ratios[ratio_index]
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=RuntimeWarning)
-                mean_ratio_ln_a440 = np.nanmean(ratio)
+                if type(ratio) is tuple:  # multi vaiable
+                    mean_ratio_ln_a440 = []
+                    for subratio in ratio:
+                        mean_ratio_ln_a440.append(np.nanmean(subratio))
+                else:
+                    mean_ratio_ln_a440 = np.nanmean(ratio)
 
-            if not np.isfinite(
-                mean_ratio_ln_a440
+            if not np.all(
+                np.isfinite(mean_ratio_ln_a440)
             ):  # nanmean can return inf or nan if array is all nans
                 is_any_mean_ratio_nan = (
                     True  # hopefully if one is nan, all the rest are nan too
@@ -171,7 +192,12 @@ for subfolder in os.listdir(out_folder):
     for i in range(len(equation_functions)):
         predicted_ratio_ln_a440_values = predicted_ratio_ln_a440_value_by_equation[i]
 
-        X = np.array(predicted_ratio_ln_a440_values).reshape(-1, 1)
+        if type(ratios[i]) is tuple:
+            X = predicted_ratio_ln_a440_values
+        else:
+            X = np.array(predicted_ratio_ln_a440_values).reshape(
+                -1, 1
+            )  # make it in [[1], [2], [3]] shape
 
         # see slope of line of best fit
         reg = LinearRegression().fit(
@@ -179,12 +205,11 @@ for subfolder in os.listdir(out_folder):
         )  # .reshape(-1, 1) because there is only one feature
 
         regression_r2_score = reg.score(
-            X, predicted_ratio_ln_a440_values
+            X, true_ln_doc_values
         )  # with proper slope applied
 
-        base_r2 = r2_score(true_ln_doc_values, predicted_ratio_ln_a440_values)
         print(
-            f"EQUATION INDEX ({i})| {regression_r2_score:.3f} is the r2 of scaled ln-a440 to ln-DOC for {subfolder} (Raw R2 score is {base_r2:.3f})"
+            f"EQUATION INDEX ({i})| {regression_r2_score:.3f} is the r2 of scaled ln-a440 to ln-DOC for {subfolder}"
         )
 
         if display:

@@ -15,8 +15,19 @@ def get_3_5_ratio(bands):
     return bands[2] / bands[4]  # zero-indexed
 
 
+def get_ln_2_5_ratio(bands):
+    return np.log(bands[1] / bands[4])  # zero indexed
+
+
+def get_2_5_ratio(bands):
+    return bands[1] / bands[4]
+
+
 def get_3_4_ratio(bands):
     return bands[2] / bands[3]  # zero-indexed
+
+
+equation_functions = [get_3_5_ratio, get_ln_2_5_ratio, get_2_5_ratio, get_3_4_ratio]
 
 
 def get_ratio_from_tif(tif_path, equation_functions):
@@ -52,7 +63,6 @@ out_folder = "all_lake_images"
 
 display = False
 
-equation_functions = [get_3_5_ratio, get_3_4_ratio]
 
 for subfolder in os.listdir(out_folder):
     true_doc_values = []
@@ -129,7 +139,8 @@ for subfolder in os.listdir(out_folder):
             plt.axis("off")
             plt.show()
 
-        is_mean_ratio_nan = False
+        is_any_mean_ratio_nan = False
+        mean_ratio_ln_a440_list = []
         for ratio_index in range(len(ratios)):
             ratio = ratios[ratio_index]
             with warnings.catch_warnings():
@@ -139,18 +150,20 @@ for subfolder in os.listdir(out_folder):
             if not np.isfinite(
                 mean_ratio_ln_a440
             ):  # nanmean can return inf or nan if array is all nans
-                is_mean_ratio_nan = (
+                is_any_mean_ratio_nan = (
                     True  # hopefully if one is nan, all the rest are nan too
                 )
                 break
 
-            predicted_ratio_ln_a440_value_by_equation[ratio_index].append(
-                mean_ratio_ln_a440
-            )  # predicted value
+            mean_ratio_ln_a440_list.append(mean_ratio_ln_a440)
 
-        if not is_mean_ratio_nan:
+        if not is_any_mean_ratio_nan:
             # only append finite values to r2 comparison
             true_doc_values.append(doc)
+            for i in range(len(ratios)):
+                predicted_ratio_ln_a440_value_by_equation[i].append(
+                    mean_ratio_ln_a440_list[i]
+                )  # predicted value
 
     true_doc_values = np.array(true_doc_values)
     true_ln_doc_values = np.log(true_doc_values)  # base e

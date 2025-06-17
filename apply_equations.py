@@ -11,7 +11,7 @@ import warnings
 from sklearn.linear_model import LinearRegression
 
 
-def apply_equation_to_tif(tif_path):
+def get_ratio_from_tif(tif_path):
     with rasterio.open(tif_path) as src:
         profile = src.profile  # Get the profile of the existing raster
         transform = src.transform
@@ -53,7 +53,7 @@ display = False
 
 for subfolder in os.listdir(out_folder):
     true_doc_values = []
-    predicted_a440_values = []
+    predicted_ratio_ln_a440_values = []
 
     tif_folder_path = os.path.join(out_folder, subfolder)
 
@@ -61,18 +61,18 @@ for subfolder in os.listdir(out_folder):
         tif_filepath = os.path.join(tif_folder_path, filename)
 
         (
-            output_ln_a440,
+            output_ratio,
             profile,
             transform,
             scale,
             x_res,
             closest_insitu_date,
             objectid,
-        ) = apply_equation_to_tif(tif_filepath)
+        ) = get_ratio_from_tif(tif_filepath)
 
-        a440 = np.exp(
-            output_ln_a440.astype(np.float128)
-        )  # a440 is absorptivity of filtered water at 440nm wavelength, a measure of CDOM, proportional to DOC
+        ratio_ln_a440 = output_ratio
+
+        # a440 is absorptivity of filtered water at 440nm wavelength, a measure of CDOM, proportional to DOC
 
         # matched doc
         all_doc = inspect_shapefile.truth_data[
@@ -107,16 +107,16 @@ for subfolder in os.listdir(out_folder):
         )  # however many x_res sized pixels needed for buffer of radius at downloaded scale
 
         outside_circle_mask = rasterio.features.geometry_mask(
-            [circle], a440.shape, transform
+            [circle], ratio_ln_a440.shape, transform
         )
 
-        a440[outside_circle_mask] = np.nan
+        ratio_ln_a440[outside_circle_mask] = np.nan
         # copy over geo data from tif to output, then get circle of output and take average
 
         if display:
             title = f"Prediction for Lake-OID-{objectid} on {closest_insitu_date}"
             fig = plt.figure(title, figsize=(10, 8))
-            plt.imshow(a440, cmap="viridis", interpolation="none")
+            plt.imshow(ratio_ln_a440, cmap="viridis", interpolation="none")
             plt.title(title)
             plt.colorbar()
             plt.axis("off")
@@ -124,41 +124,42 @@ for subfolder in os.listdir(out_folder):
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)
-            mean_a440 = np.nanmean(a440)
+            mean_ratio_ln_a440 = np.nanmean(ratio_ln_a440)
 
         if not np.isfinite(
-            mean_a440
+            mean_ratio_ln_a440
         ):  # nanmean can return inf or nan if array is all nans
             continue
 
         # only append finite values to r2 comparison
         true_doc_values.append(doc)  # true value
-        predicted_a440_values.append(mean_a440)  # predicted value
+        predicted_ratio_ln_a440_values.append(mean_ratio_ln_a440)  # predicted value
 
     true_doc_values = np.array(true_doc_values)
+    true_ln_doc_values = np.log(true_doc_values)  # base e
 
-    X = np.array(predicted_a440_values).reshape(-1, 1)
+    X = np.array(predicted_ratio_ln_a440_values).reshape(-1, 1)
     # see slope of line of best fit
     reg = LinearRegression().fit(
-        X, true_doc_values
+        X, true_ln_doc_values
     )  # .reshape(-1, 1) because there is only one feature
 
     regression_r2_score = reg.score(
-        X, predicted_a440_values
+        X, predicted_ratio_ln_a440_values
     )  # with proper slope applied
 
-    base_r2 = r2_score(true_doc_values, predicted_a440_values)
+    base_r2 = r2_score(true_ln_doc_values, predicted_ratio_ln_a440_values)
     print(
-        f"{regression_r2_score:.3f} is the r2 of scaled a440 to DOC for {subfolder} (Raw R2 score is {base_r2:.3f})"
+        f"{regression_r2_score:.3f} is the r2 of scaled ln-a440 to ln-DOC for {subfolder} (Raw R2 score is {base_r2:.3f})"
     )
 
-    """
     # plot all values
-    plt.scatter(predicted_a440_values, true_doc_values)  # band ratio to a440
+    plt.scatter(
+        predicted_ratio_ln_a440_values, true_ln_doc_values
+    )  # band ratio to a440
     plt.plot(
-        predicted_a440_values, reg.predict(X)
+        predicted_ratio_ln_a440_values, reg.predict(X)
     )  # plot line of best fit of a440 to true doc
     plt.xlabel("predicted a440")
     plt.ylabel("DOC")
     plt.show()
-    """

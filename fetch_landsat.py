@@ -570,7 +570,6 @@ def get_image_and_date_from_image_collection(coll, index, shp):
     image = image.clip(shp)
     image = image.toFloat()
 
-    print(image.get("system:id").getInfo())
     return image, date
 
 
@@ -619,8 +618,6 @@ def export_raster_main_landsat(
     image, date = get_raster(
         start_date=start_date, end_date=end_date, LakeShp=LakeShp, scale=scale
     )
-
-    print(image.id().getInfo())
 
     url = image.getDownloadURL(
         {

@@ -84,7 +84,11 @@ out_folder = "all_lake_images"
 
 display = False
 
-results = []
+results_r2 = []
+results_reg_eq = []
+
+all_X_s_ever_by_equation = list(map(lambda x: [], equation_functions))
+all_true_ln_docs_ever = []
 
 for subfolder in os.listdir(out_folder):
     true_doc_values = []
@@ -200,8 +204,10 @@ for subfolder in os.listdir(out_folder):
 
     true_doc_values = np.array(true_doc_values)
     true_ln_doc_values = np.log(true_doc_values)  # base e
+    all_true_ln_docs_ever.extend(true_ln_doc_values)
 
-    this_result = []
+    this_results_r2 = []
+    this_results_reg_eq = []
     for i in range(len(equation_functions)):
         predicted_ratio_ln_a440_values = predicted_ratio_ln_a440_value_by_equation[i]
 
@@ -212,6 +218,8 @@ for subfolder in os.listdir(out_folder):
                 -1, 1
             )  # make it in [[1], [2], [3]] shape
 
+        all_X_s_ever_by_equation[i].extend(X)
+
         # see slope of line of best fit
         reg = LinearRegression().fit(
             X, true_ln_doc_values
@@ -221,7 +229,8 @@ for subfolder in os.listdir(out_folder):
             X, true_ln_doc_values
         )  # with proper slope applied
 
-        this_result.append(regression_r2_score)
+        this_results_r2.append(regression_r2_score)
+        this_results_reg_eq.append(reg)
         # print(
         #     f"EQUATION INDEX ({i})| {regression_r2_score:.3f} is the r2 of scaled ln-a440 to ln-DOC for {subfolder}"
         # )
@@ -242,17 +251,18 @@ for subfolder in os.listdir(out_folder):
         inspect_shapefile.shp_df["OBJECTID"] == float(objectid)
     ]["NAME"].iloc[0]
 
-    this_result.append(len(true_ln_doc_values))
-    this_result.append(
-        objectid
+    this_results_r2.append(len(true_ln_doc_values))
+    this_results_r2.append(
+        float(objectid)
     )  # latest object id should be same as all other object ids for this subfolder
-    this_result.append(
+    this_results_r2.append(
         proper_lake_name
     )  # latest object id should be same as all other object ids for this subfolder
 
-    results.append(this_result)
+    results_r2.append(this_results_r2)
+    results_reg_eq.append(this_results_reg_eq)
 
-results_df = pd.DataFrame.from_records(results)
+results_df = pd.DataFrame.from_records(results_r2)
 results_df.columns = [
     "3_5_ratio",
     "ln_2_5_ratio",
@@ -262,10 +272,25 @@ results_df.columns = [
     "1_4_ratio_and_3_4_ratio",
     "3_4_ratio_and_4_5_ratio",
     "number_truth_values",
-    "objectid",
-    "name",
+    "OBJECTID",
+    "NAME",
 ]
 
 results_df.to_csv("results.csv")
 
 print("Results: \n", results_df)
+
+# Mass apply a set equation to all
+
+lake_moose_row = results_df[results_df["OBJECTID"] == float(298315)]  # big moose
+lake_moose_row_index = lake_moose_row.index[0]
+equation_index_of_interest = 6
+
+reg_to_use = results_reg_eq[lake_moose_row_index][equation_index_of_interest]
+
+r2_score = reg_to_use.score(
+    all_X_s_ever_by_equation[equation_index_of_interest], all_true_ln_docs_ever
+)
+print(
+    f"Global r2_score of equation with index ({equation_index_of_interest}): ", r2_score
+)

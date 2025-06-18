@@ -530,7 +530,7 @@ def import_collections(filter_range, LakeShp) -> ee.Image:
     """## Buffer function for points"""
     # # filter landsat 8 and 9 scenes by path / row
     FC_OLI = (
-        ee.ImageCollection("LANDSAT/LC08/C02/T1")
+        ee.ImageCollection("LANDSAT/LC08/C02/T1")  # level 1 (T1_L2 would be level 2)
         .filterMetadata("CLOUD_COVER", "less_than", CLOUD_FILTER)
         .filter(filter_range)
         .filterBounds(LakeShp)
@@ -541,7 +541,7 @@ def import_collections(filter_range, LakeShp) -> ee.Image:
     )
 
     FC_OLI2 = (
-        ee.ImageCollection("LANDSAT/LC09/C02/T1")
+        ee.ImageCollection("LANDSAT/LC09/C02/T1")  # level 1 (T1_L2 would be level 2)
         .filterMetadata("CLOUD_COVER", "less_than", CLOUD_FILTER)
         .filter(filter_range)
         .filterBounds(LakeShp)
@@ -611,7 +611,7 @@ def export_raster_main_landsat(
     lakeid: int,
     start_date: str,
     end_date: str,
-    insitu_date : str,
+    insitu_date: str,
     scale: int,
     shouldVisualize: bool = False,
 ):

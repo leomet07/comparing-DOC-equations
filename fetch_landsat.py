@@ -611,6 +611,7 @@ def export_raster_main_landsat(
     lakeid: int,
     start_date: str,
     end_date: str,
+    insitu_date : str,
     scale: int,
     shouldVisualize: bool = False,
 ):
@@ -643,7 +644,7 @@ def export_raster_main_landsat(
 
     new_metadata = {
         "date": date,
-        "closest_insitu_date": start_date,  # this was the date from the insitu
+        "closest_insitu_date": insitu_date,  # this was the date from the insitu
         "objectid": lakeid,
         "scale": scale,
         "satellite": "landsat",

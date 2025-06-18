@@ -9,7 +9,7 @@ import random
 import sys
 
 
-def gen_all_lakes_all_dates_params(project, OUT_DIR, days_after_insitu: int):
+def gen_all_lakes_all_dates_params(project, OUT_DIR, days_before_and_after_insitu: int):
     all_params = []
     for lake_info in inspect_shapefile.lake_infos_of_interest:
         lake_name = lake_info["NAME"].lower().replace(" ", "_")
@@ -27,9 +27,11 @@ def gen_all_lakes_all_dates_params(project, OUT_DIR, days_after_insitu: int):
 
         # Check for sateliite flyover dates for woods lake at dates
         for i in range(len(dates_for_lake)):
-            start_date = dates_for_lake[i]
-            end_date = start_date + pd.DateOffset(
-                days=days_after_insitu
+            start_date = dates_for_lake[i] - pd.DateOffset(
+                days=days_before_and_after_insitu
+            )
+            end_date = dates_for_lake[i] + pd.DateOffset(
+                days=days_before_and_after_insitu
             )  # check for 1, 3, 5 days (this is one day)
 
             start_date_YYYY_MM_DD = str(start_date)[:10]  # faster than strftime
@@ -44,6 +46,7 @@ def gen_all_lakes_all_dates_params(project, OUT_DIR, days_after_insitu: int):
                     lake_objectid,
                     start_date,
                     end_date,
+                    dates_for_lake[i],
                     30,  # scale
                     False,  # Should visualize
                 )
@@ -61,7 +64,7 @@ def wrapper_export(
 if __name__ == "__main__":
     project = sys.argv[1]
     out_dir = sys.argv[2]
-    days_after_insitu = int(sys.argv[3])
+    days_before_and_after_insitu = int(sys.argv[3])
 
     fetch_landsat.open_gee_project(project=project)
 
@@ -70,7 +73,7 @@ if __name__ == "__main__":
     pool = multiprocessing.Pool(25)
 
     all_params_to_pass_in = gen_all_lakes_all_dates_params(
-        project, out_dir, days_after_insitu
+        project, out_dir, days_before_and_after_insitu
     )
 
     random.shuffle(all_params_to_pass_in)

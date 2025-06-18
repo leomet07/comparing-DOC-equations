@@ -124,4 +124,8 @@ truth_data = truth_data[truth_data["DATE_SMP"] > "2013-02-11"]
 # Merge in shp file (object ids, centroids) into truth_data
 truth_data = truth_data.merge(shp_df, left_on="SITE_ID", right_on="SITE_ID")
 
+truth_data = truth_data[
+    (truth_data["DATE_SMP"].dt.month > 4) & (truth_data["DATE_SMP"].dt.month < 11)
+]
+
 print("Truth data: \n", truth_data)

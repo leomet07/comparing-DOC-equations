@@ -556,21 +556,19 @@ def import_collections(filter_range, LakeShp) -> ee.Image:
     # filter S2A by the filtered buffer and apply atm corr
     FC_combined = FC_combined.map(atm_corr).sort("system:time_start")
 
-    FC_combined = FC_combined.select(
-        ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8"]
-    )  # TODO: GET BANDS B7 and B8
-    # FC_combined = FC_combined.select(["B1", "B2", "B3", "B4", "B5"])
+    FC_combined = FC_combined.select(["B1", "B2", "B3", "B4", "B5"])
 
     return FC_combined
 
 
 def get_image_and_date_from_image_collection(coll, index, shp):
     image = ee.Image(coll.toList(coll.size()).get(index))
+    image_index = image.get("system:index").getInfo()
     date = ee.Date(image.get("system:time_start")).format("YYYY-MM-dd").getInfo()
     image = image.clip(shp)
     image = image.toFloat()
 
-    return image, date
+    return image, image_index, date
 
 
 def get_raster(start_date, end_date, LakeShp, scale) -> ee.Image:
@@ -586,7 +584,7 @@ def get_raster(start_date, end_date, LakeShp, scale) -> ee.Image:
         raise Exception("NO IMAGES FOUND")
 
     for i in range(0, merged_landsat_image_collection_len):
-        image, date = get_image_and_date_from_image_collection(
+        image, image_index, date = get_image_and_date_from_image_collection(
             merged_landsat_image_collection, i, LakeShp
         )
 
@@ -599,7 +597,7 @@ def get_raster(start_date, end_date, LakeShp, scale) -> ee.Image:
         ).getInfo()
 
         if see_if_all_image_bands_valid(min_value):
-            return image, date
+            return image, image_index, date
     # if it made it here, all have blank images (due to NASA JPL aggressive cloud alterer/filter)
     raise Exception("IMAGE IS ALL BLANK :(((")
 
@@ -614,9 +612,10 @@ def export_raster_main_landsat(
     insitu_date: str,
     scale: int,
     shouldVisualize: bool = False,
+    index_logfile_path=None,
 ):
     LakeShp = import_assets(lakeid, project)  # get shape of lake
-    image, date = get_raster(
+    image, image_index, date = get_raster(
         start_date=start_date, end_date=end_date, LakeShp=LakeShp, scale=scale
     )
 
@@ -648,6 +647,7 @@ def export_raster_main_landsat(
         "objectid": lakeid,
         "scale": scale,
         "satellite": "landsat",
+        "image_index": image_index,
     }
     with rasterio.open(out_filepath, "r+") as dst:
         dst.update_tags(**new_metadata)
@@ -656,6 +656,10 @@ def export_raster_main_landsat(
         print(f"Image saved to {out_filepath}")
         print("Saved image metadata: ", new_metadata)
         visualize(out_filepath)
+
+    if index_logfile_path:
+        with open(index_logfile_path, "a") as index_logfile:
+            index_logfile.write(f"{image_index}\n")
 
     return out_filepath
 
@@ -684,6 +688,7 @@ if __name__ == "__main__":
         lakeid=lakeid,
         start_date=start_date,
         end_date=end_date,
+        insitu_date=start_date,  # this doesnt matter when only fetching one, just for testing
         scale=scale,
         shouldVisualize=True,
     )

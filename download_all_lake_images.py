@@ -11,6 +11,10 @@ import sys
 
 def gen_all_lakes_all_dates_params(project, OUT_DIR, days_before_and_after_insitu: int):
     all_params = []
+    index_logfile_path = os.path.join(OUT_DIR, "image_indexes_saved.csv")
+    with open(index_logfile_path, "w") as index_logfile:
+        index_logfile.write("image_index\n")
+
     for lake_info in inspect_shapefile.lake_infos_of_interest:
         lake_name = lake_info["NAME"].lower().replace(" ", "_")
         lake_objectid = lake_info["OBJECTID"]
@@ -49,6 +53,7 @@ def gen_all_lakes_all_dates_params(project, OUT_DIR, days_before_and_after_insit
                     dates_for_lake[i],
                     30,  # scale
                     False,  # Should visualize
+                    index_logfile_path,  # logfile path for image indexes
                 )
             )
 

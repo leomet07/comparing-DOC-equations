@@ -44,7 +44,7 @@ def get_ratio_from_tif(tif_path, equation_functions):
 
 number_of_equations = len(equations.equation_functions)
 
-out_folder = "all_lake_images_five_front_and_back_water_mask"
+out_folder = "all_lake_images_three_front_and_back_water_mask_level_2"
 
 display = False
 
@@ -55,6 +55,8 @@ all_X_s_ever_by_equation = list(map(lambda x: [], equations.equation_functions))
 all_true_ln_docs_ever = []
 
 for subfolder in os.listdir(out_folder):
+    if os.path.isfile(os.path.join(out_folder, subfolder)):
+        continue  # this is the log file
     if subfolder == "rondaxe,_lake_tifs" or subfolder == "otter_lake_tifs":
         continue  # temporary, rondaxe does not have enough pixels around centroid
     true_doc_values = []

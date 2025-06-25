@@ -6,7 +6,7 @@ import os
 from matplotlib import pyplot as plt
 import inspect_shapefile
 from shapely.geometry import Point
-from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score, root_mean_squared_error
 import rasterio.features
 import warnings
 from sklearn.linear_model import LinearRegression
@@ -64,7 +64,7 @@ out_folder = "all_lake_images_five_front_and_back_water_mask"
 
 display = False
 
-results_r2 = []
+list_of_results_df_rows = []
 results_reg_eq = []
 
 all_X_s_ever_by_equation = list(map(lambda x: [], equation_functions))
@@ -143,41 +143,42 @@ for subfolder in os.listdir(out_folder):
         # copy over geo data from tif to output, then get circle of output and take average
 
         is_any_mean_ratio_nan = False
-        mean_ratio_ln_a440_list = []
+        mean_ratio_list = []
         for ratio_index in range(len(ratios)):
             ratio = ratios[ratio_index]
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=RuntimeWarning)
                 if type(ratio) is tuple:  # multi vaiable
-                    mean_ratio_ln_a440 = []
+                    mean_ratio = []
                     for subratio in ratio:
-                        mean_ratio_ln_a440.append(np.nanmean(subratio))
+                        mean_ratio.append(np.nanmean(subratio))
                 else:
-                    mean_ratio_ln_a440 = np.nanmean(ratio)
+                    mean_ratio = np.nanmean(ratio)
 
             if not np.all(
-                np.isfinite(mean_ratio_ln_a440)
+                np.isfinite(mean_ratio)
             ):  # nanmean can return inf or nan if array is all nans
                 is_any_mean_ratio_nan = (
                     True  # hopefully if one is nan, all the rest are nan too
                 )
                 break
 
-            mean_ratio_ln_a440_list.append(mean_ratio_ln_a440)
+            mean_ratio_list.append(mean_ratio)
 
         if not is_any_mean_ratio_nan:
             # only append finite values to r2 comparison
             true_doc_values.append(doc)
             for i in range(len(ratios)):
                 predicted_ratio_ln_a440_value_by_equation[i].append(
-                    mean_ratio_ln_a440_list[i]
+                    mean_ratio_list[i]
                 )  # predicted value
 
     true_doc_values = np.array(true_doc_values)
     true_ln_doc_values = np.log(true_doc_values)  # base e
     all_true_ln_docs_ever.extend(true_ln_doc_values)
 
-    this_results_r2 = []
+    # this_results_r2 = []
+    results_df_row = {}
     this_results_reg_eq = []
     for i in range(len(equation_functions)):
         predicted_ratio_ln_a440_values = predicted_ratio_ln_a440_value_by_equation[i]
@@ -198,8 +199,10 @@ for subfolder in os.listdir(out_folder):
 
         predicted_doc = reg.predict(X)
         regression_r2_score = r2_score(true_ln_doc_values, predicted_doc)
+        regression_rmse = root_mean_squared_error(true_ln_doc_values, predicted_doc)
 
-        this_results_r2.append(regression_r2_score)
+        results_df_row[f"equation_i{i}_r2"] = regression_r2_score
+        results_df_row[f"equation_i{i}_rmse"] = regression_rmse
         this_results_reg_eq.append(reg)
         # print(
         #     f"EQUATION INDEX ({i})| {regression_r2_score:.3f} is the r2 of scaled ln-a440 to ln-DOC for {subfolder}"
@@ -209,26 +212,18 @@ for subfolder in os.listdir(out_folder):
         inspect_shapefile.shp_df["OBJECTID"] == float(objectid)
     ]["NAME"].iloc[0]
 
-    this_results_r2.append(len(true_ln_doc_values))
-    this_results_r2.append(
-        float(objectid)
+    results_df_row["number_truth_values"] = len(true_ln_doc_values)
+    results_df_row["OBJECTID"] = float(
+        objectid
     )  # latest object id should be same as all other object ids for this subfolder
-    this_results_r2.append(
-        proper_lake_name
-    )  # latest object id should be same as all other object ids for this subfolder
+    results_df_row["NAME"] = (
+        proper_lake_name  # latest object id should be same as all other object ids for this subfolder
+    )
 
-    results_r2.append(this_results_r2)
+    list_of_results_df_rows.append(results_df_row)
     results_reg_eq.append(this_results_reg_eq)
 
-results_df = pd.DataFrame.from_records(results_r2)
-results_df.columns = [
-    "1_4_ratio_and_2_4_ratio",
-    "1_4_ratio_and_3_4_ratio",
-    "3_4_ratio_and_4_5_ratio",
-    "number_truth_values",
-    "OBJECTID",
-    "NAME",
-]
+results_df = pd.DataFrame(list_of_results_df_rows)
 
 results_df.to_csv("results.csv")
 
@@ -238,7 +233,7 @@ print("Results: \n", results_df)
 
 lake_moose_row = results_df[results_df["OBJECTID"] == float(298315)]  # big moose
 lake_moose_row_index = lake_moose_row.index[0]
-equation_index_of_interest = 6
+equation_index_of_interest = 2
 
 reg_to_use = results_reg_eq[lake_moose_row_index][equation_index_of_interest]
 

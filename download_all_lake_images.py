@@ -11,6 +11,8 @@ import sys
 
 def gen_all_lakes_all_dates_params(project, OUT_DIR, days_before_and_after_insitu: int):
     all_params = []
+    if not os.path.exists(OUT_DIR):
+        os.makedirs(OUT_DIR)
     index_logfile_path = os.path.join(OUT_DIR, "image_indexes_saved.csv")
     with open(index_logfile_path, "w") as index_logfile:
         index_logfile.write("image_index\n")

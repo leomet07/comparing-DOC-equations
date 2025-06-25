@@ -129,3 +129,15 @@ truth_data = truth_data[
 ]
 
 print("Truth data: \n", truth_data)
+
+if __name__ == "__main__":
+    # get mean doc for each lake
+    for lake_info in lake_infos_of_interest:
+        lake_name = lake_info["NAME"].lower().replace(" ", "_")
+        lake_objectid = lake_info["OBJECTID"]
+
+        # filter truth data to just this lake
+        use_dataset = truth_data[truth_data["OBJECTID"] == float(lake_objectid)]
+
+        mean_doc = use_dataset["DOC_MG_L"].mean()
+        print(f"{lake_name} has a mean DOC of {mean_doc}. {len(use_dataset)} points.")

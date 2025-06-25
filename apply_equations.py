@@ -55,11 +55,12 @@ all_X_s_ever_by_equation = list(map(lambda x: [], equations.equation_functions))
 all_true_ln_docs_ever = []
 
 for subfolder in os.listdir(out_folder):
+    if subfolder == "rondaxe,_lake_tifs" or subfolder == "otter_lake_tifs":
+        continue  # temporary, rondaxe does not have enough pixels around centroid
     true_doc_values = []
     input_means_by_equation = list(
         map(lambda x: [], equations.equation_functions)
     )  # index 0 corresponds with first equation, 1 with second, etc...
-    print(input_means_by_equation)
 
     tif_folder_path = os.path.join(out_folder, subfolder)
 
@@ -171,7 +172,6 @@ for subfolder in os.listdir(out_folder):
     this_results_reg_eq = []
     for i in range(number_of_equations):
         X = input_means_by_equation[i]
-
         all_X_s_ever_by_equation[i].extend(X)
 
         # see slope of line of best fit
@@ -213,7 +213,7 @@ print("Results: \n", results_df)
 
 lake_moose_row = results_df[results_df["OBJECTID"] == float(298315)]  # big moose
 lake_moose_row_index = lake_moose_row.index[0]
-equation_index_of_interest = 2
+equation_index_of_interest = 1
 
 reg_to_use = results_reg_eq[lake_moose_row_index][equation_index_of_interest]
 

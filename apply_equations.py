@@ -13,15 +13,15 @@ from sklearn.linear_model import LinearRegression
 
 
 def get_3_5_ratio(bands):
-    return bands[2] / bands[4]  # zero-indexed
+    return (bands[2] / bands[4]), bands[3]  # zero-indexed
 
 
-def get_ln_2_5_ratio(bands):
-    return np.log(bands[1] / bands[4])  # zero-indexed
+def get_ln_2_5_and_band_1_ratio(bands):
+    return np.log(bands[1] / bands[4]), bands[0]  # zero-indexed
 
 
 def get_2_5_ratio(bands):
-    return bands[1] / bands[4]  # zero-indexed
+    return bands[1] / bands[4], bands[2]  # zero-indexed
 
 
 def get_3_4_ratio(bands):
@@ -42,7 +42,7 @@ def get_3_4_ratio_and_4_5_ratio(bands):
 
 equation_functions = [
     get_3_5_ratio,
-    get_ln_2_5_ratio,
+    get_ln_2_5_and_band_1_ratio,
     get_2_5_ratio,
     get_3_4_ratio,
     get_1_4_ratio_and_2_4_ratio,
@@ -80,7 +80,7 @@ def get_ratio_from_tif(tif_path, equation_functions):
         )
 
 
-out_folder = "all_lake_images"
+out_folder = "all_lake_images_five_front_and_back_water_mask"
 
 display = False
 
@@ -162,15 +162,6 @@ for subfolder in os.listdir(out_folder):
 
         # copy over geo data from tif to output, then get circle of output and take average
 
-        if display:
-            title = f"Prediction for Lake-OID-{objectid} on {closest_insitu_date}"
-            fig = plt.figure(title, figsize=(10, 8))
-            plt.imshow(ratio_ln_a440, cmap="viridis", interpolation="none")
-            plt.title(title)
-            plt.colorbar()
-            plt.axis("off")
-            plt.show()
-
         is_any_mean_ratio_nan = False
         mean_ratio_ln_a440_list = []
         for ratio_index in range(len(ratios)):
@@ -225,27 +216,14 @@ for subfolder in os.listdir(out_folder):
             X, true_ln_doc_values
         )  # .reshape(-1, 1) because there is only one feature
 
-        regression_r2_score = reg.score(
-            X, true_ln_doc_values
-        )  # with proper slope applied
+        predicted_doc = reg.predict(X)
+        regression_r2_score = r2_score(true_ln_doc_values, predicted_doc)
 
         this_results_r2.append(regression_r2_score)
         this_results_reg_eq.append(reg)
         # print(
         #     f"EQUATION INDEX ({i})| {regression_r2_score:.3f} is the r2 of scaled ln-a440 to ln-DOC for {subfolder}"
         # )
-
-        if display:
-            # plot all values
-            plt.scatter(
-                predicted_ratio_ln_a440_values, true_ln_doc_values
-            )  # band ratio to a440
-            plt.plot(
-                predicted_ratio_ln_a440_values, reg.predict(X)
-            )  # plot line of best fit of a440 to true doc
-            plt.xlabel("predicted a440")
-            plt.ylabel("DOC")
-            plt.show()
 
     proper_lake_name = inspect_shapefile.shp_df[
         inspect_shapefile.shp_df["OBJECTID"] == float(objectid)

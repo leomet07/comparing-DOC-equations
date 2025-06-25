@@ -43,14 +43,14 @@ def get_ratio_from_tif(tif_path, equation_functions):
 
         bands = src.read()
 
-        ratios = []
+        list_of_ratio_tuples = []
 
         with np.errstate(divide="ignore", invalid="ignore"):
             for equation_function in equation_functions:
-                ratios.append(equation_function(bands))
+                list_of_ratio_tuples.append(equation_function(bands))
 
         return (
-            ratios,
+            list_of_ratio_tuples,
             profile,
             transform,
             scale,
@@ -72,7 +72,7 @@ all_true_ln_docs_ever = []
 
 for subfolder in os.listdir(out_folder):
     true_doc_values = []
-    predicted_ratio_ln_a440_value_by_equation = list(
+    input_means_by_equation = list(
         map(lambda x: [], equation_functions)
     )  # index 0 corresponds with first equation, 1 with second, etc...
 
@@ -82,7 +82,7 @@ for subfolder in os.listdir(out_folder):
         tif_filepath = os.path.join(tif_folder_path, filename)
 
         (
-            ratios,
+            list_of_ratio_tuples,
             profile,
             transform,
             scale,
@@ -126,52 +126,48 @@ for subfolder in os.listdir(out_folder):
         )  # however many x_res sized pixels needed for buffer of radius at downloaded scale
 
         outside_circle_mask = rasterio.features.geometry_mask(
-            [circle], ratios[0][0].shape, transform
+            [circle], list_of_ratio_tuples[0][0].shape, transform
         )
 
-        for ratio in ratios:
-            if type(ratio) is tuple:  # multi vaiable
-                for subratio in ratio:
-                    subratio[outside_circle_mask] = (
-                        np.nan
-                    )  # arrays store pointer to ratio array, this is okay bc just a mutation
-            else:
-                ratio[outside_circle_mask] = (
+        for ratio_tuple in list_of_ratio_tuples:
+            # multi vaiable
+            for subratio in ratio_tuple:
+                subratio[outside_circle_mask] = (
                     np.nan
                 )  # arrays store pointer to ratio array, this is okay bc just a mutation
 
-        # copy over geo data from tif to output, then get circle of output and take average
-
+        # ------------------------------------------------------------
+        # MAKE SURE THAT FOR THIS TIFF, CENTROID MEAN ACTUALLY EXISTS (consisting of at least 3 pixels)
         is_any_mean_ratio_nan = False
-        mean_ratio_list = []
-        for ratio_index in range(len(ratios)):
-            ratio = ratios[ratio_index]
+        list_of_input_tuples = []
+
+        for ratio_tuple_index in range(len(list_of_ratio_tuples)):
+            ratio_tuple = list_of_ratio_tuples[ratio_tuple_index]
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=RuntimeWarning)
-                if type(ratio) is tuple:  # multi vaiable
-                    mean_ratio = []
-                    for subratio in ratio:
-                        mean_ratio.append(np.nanmean(subratio))
-                else:
-                    mean_ratio = np.nanmean(ratio)
+                # multi vaiable
+                mean_ratio_tuple = []
+                for subratio in ratio_tuple:
+                    mean_ratio_tuple.append(np.nanmean(subratio))
 
             if not np.all(
-                np.isfinite(mean_ratio)
+                np.isfinite(mean_ratio_tuple)
             ):  # nanmean can return inf or nan if array is all nans
                 is_any_mean_ratio_nan = (
                     True  # hopefully if one is nan, all the rest are nan too
                 )
                 break
 
-            mean_ratio_list.append(mean_ratio)
+            list_of_input_tuples.append(mean_ratio_tuple)
 
         if not is_any_mean_ratio_nan:
             # only append finite values to r2 comparison
             true_doc_values.append(doc)
-            for i in range(len(ratios)):
-                predicted_ratio_ln_a440_value_by_equation[i].append(
-                    mean_ratio_list[i]
+            for i in range(len(list_of_ratio_tuples)):
+                input_means_by_equation[i].append(
+                    list_of_input_tuples[i]
                 )  # predicted value
+        # ------------------------------------------------------------
 
     true_doc_values = np.array(true_doc_values)
     true_ln_doc_values = np.log(true_doc_values)  # base e
@@ -181,14 +177,7 @@ for subfolder in os.listdir(out_folder):
     results_df_row = {}
     this_results_reg_eq = []
     for i in range(len(equation_functions)):
-        predicted_ratio_ln_a440_values = predicted_ratio_ln_a440_value_by_equation[i]
-
-        if type(ratios[i]) is tuple:
-            X = predicted_ratio_ln_a440_values
-        else:
-            X = np.array(predicted_ratio_ln_a440_values).reshape(
-                -1, 1
-            )  # make it in [[1], [2], [3]] shape
+        X = input_means_by_equation[i]
 
         all_X_s_ever_by_equation[i].extend(X)
 
@@ -204,9 +193,6 @@ for subfolder in os.listdir(out_folder):
         results_df_row[f"equation_i{i}_r2"] = regression_r2_score
         results_df_row[f"equation_i{i}_rmse"] = regression_rmse
         this_results_reg_eq.append(reg)
-        # print(
-        #     f"EQUATION INDEX ({i})| {regression_r2_score:.3f} is the r2 of scaled ln-a440 to ln-DOC for {subfolder}"
-        # )
 
     proper_lake_name = inspect_shapefile.shp_df[
         inspect_shapefile.shp_df["OBJECTID"] == float(objectid)

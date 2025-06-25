@@ -148,11 +148,19 @@ for subfolder in os.listdir(out_folder):
                 # multi vaiable
                 mean_ratio_tuple = []
                 for subratio in ratio_tuple:
+                    #  number of values to be averaging
+                    number_of_valid_pixels_within_centroid = np.sum(~np.isnan(subratio))
+
+                    if number_of_valid_pixels_within_centroid < 3:
+                        is_any_mean_ratio_nan = (
+                            True  # less than 3 pixels is not good enough to get a mean
+                        )
+                        break
                     mean_ratio_tuple.append(np.nanmean(subratio))
 
             if not np.all(
                 np.isfinite(mean_ratio_tuple)
-            ):  # nanmean can return inf or nan if array is all nans
+            ):  # nanmean can return inf or nan if array is all nans or has infinities in it (infs bugs is why this check is still needed)
                 is_any_mean_ratio_nan = (
                     True  # hopefully if one is nan, all the rest are nan too
                 )

@@ -54,7 +54,9 @@ results_reg_eq = []
 all_X_s_ever_by_equation = list(map(lambda x: [], equations.equation_functions))
 all_true_ln_docs_ever = []
 
-for subfolder in os.listdir(out_folder):
+subfolders = list(os.listdir(out_folder))
+subfolders.sort()
+for subfolder in subfolders:
     if os.path.isfile(os.path.join(out_folder, subfolder)):
         continue  # this is the log file
     if subfolder == "rondaxe,_lake_tifs" or subfolder == "otter_lake_tifs":

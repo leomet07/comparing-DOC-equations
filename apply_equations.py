@@ -12,22 +12,6 @@ import warnings
 from sklearn.linear_model import LinearRegression
 
 
-def get_3_5_ratio(bands):
-    return (bands[2] / bands[4]), bands[3]  # zero-indexed
-
-
-def get_ln_2_5_and_band_1_ratio(bands):
-    return np.log(bands[1] / bands[4]), bands[0]  # zero-indexed
-
-
-def get_2_5_ratio(bands):
-    return bands[1] / bands[4], bands[2]  # zero-indexed
-
-
-def get_3_4_ratio(bands):
-    return bands[2] / bands[3]  # zero-indexed
-
-
 def get_1_4_ratio_and_2_4_ratio(bands):
     return (bands[0] / bands[3]), (bands[1] / bands[3])  # zero-indexed
 
@@ -41,10 +25,6 @@ def get_3_4_ratio_and_4_5_ratio(bands):
 
 
 equation_functions = [
-    get_3_5_ratio,
-    get_ln_2_5_and_band_1_ratio,
-    get_2_5_ratio,
-    get_3_4_ratio,
     get_1_4_ratio_and_2_4_ratio,
     get_1_4_ratio_and_3_4_ratio,
     get_3_4_ratio_and_4_5_ratio,
@@ -146,7 +126,7 @@ for subfolder in os.listdir(out_folder):
         )  # however many x_res sized pixels needed for buffer of radius at downloaded scale
 
         outside_circle_mask = rasterio.features.geometry_mask(
-            [circle], ratios[0].shape, transform
+            [circle], ratios[0][0].shape, transform
         )
 
         for ratio in ratios:
@@ -242,10 +222,6 @@ for subfolder in os.listdir(out_folder):
 
 results_df = pd.DataFrame.from_records(results_r2)
 results_df.columns = [
-    "3_5_ratio",
-    "ln_2_5_ratio",
-    "2_5_ratio",
-    "3_4_ratio",
     "1_4_ratio_and_2_4_ratio",
     "1_4_ratio_and_3_4_ratio",
     "3_4_ratio_and_4_5_ratio",

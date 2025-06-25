@@ -10,25 +10,7 @@ from sklearn.metrics import r2_score, root_mean_squared_error
 import rasterio.features
 import warnings
 from sklearn.linear_model import LinearRegression
-
-
-def get_1_4_ratio_and_2_4_ratio(bands):
-    return (bands[0] / bands[3]), (bands[1] / bands[3])  # zero-indexed
-
-
-def get_1_4_ratio_and_3_4_ratio(bands):
-    return (bands[0] / bands[3]), (bands[2] / bands[3])  # zero-indexed
-
-
-def get_3_4_ratio_and_4_5_ratio(bands):
-    return (bands[2] / bands[3]), (bands[3] / bands[4])  # zero-indexed
-
-
-equation_functions = [
-    get_1_4_ratio_and_2_4_ratio,
-    get_1_4_ratio_and_3_4_ratio,
-    get_3_4_ratio_and_4_5_ratio,
-]
+import equations
 
 
 def get_ratio_from_tif(tif_path, equation_functions):
@@ -60,6 +42,8 @@ def get_ratio_from_tif(tif_path, equation_functions):
         )
 
 
+number_of_equations = len(equations.equation_functions)
+
 out_folder = "all_lake_images_five_front_and_back_water_mask"
 
 display = False
@@ -67,14 +51,15 @@ display = False
 list_of_results_df_rows = []
 results_reg_eq = []
 
-all_X_s_ever_by_equation = list(map(lambda x: [], equation_functions))
+all_X_s_ever_by_equation = list(map(lambda x: [], equations.equation_functions))
 all_true_ln_docs_ever = []
 
 for subfolder in os.listdir(out_folder):
     true_doc_values = []
     input_means_by_equation = list(
-        map(lambda x: [], equation_functions)
+        map(lambda x: [], equations.equation_functions)
     )  # index 0 corresponds with first equation, 1 with second, etc...
+    print(input_means_by_equation)
 
     tif_folder_path = os.path.join(out_folder, subfolder)
 
@@ -89,7 +74,7 @@ for subfolder in os.listdir(out_folder):
             x_res,
             closest_insitu_date,
             objectid,
-        ) = get_ratio_from_tif(tif_filepath, equation_functions)
+        ) = get_ratio_from_tif(tif_filepath, equations.equation_functions)
 
         # a440 is absorptivity of filtered water at 440nm wavelength, a measure of CDOM, proportional to DOC
 
@@ -171,7 +156,7 @@ for subfolder in os.listdir(out_folder):
         if not is_any_mean_ratio_nan:
             # only append finite values to r2 comparison
             true_doc_values.append(doc)
-            for i in range(len(list_of_ratio_tuples)):
+            for i in range(number_of_equations):
                 input_means_by_equation[i].append(
                     list_of_input_tuples[i]
                 )  # predicted value
@@ -184,12 +169,13 @@ for subfolder in os.listdir(out_folder):
     # this_results_r2 = []
     results_df_row = {}
     this_results_reg_eq = []
-    for i in range(len(equation_functions)):
+    for i in range(number_of_equations):
         X = input_means_by_equation[i]
 
         all_X_s_ever_by_equation[i].extend(X)
 
         # see slope of line of best fit
+        # print(f"Subfolder {subfolder} | Equation i{i} | X: ", X)
         reg = LinearRegression().fit(
             X, true_ln_doc_values
         )  # .reshape(-1, 1) because there is only one feature

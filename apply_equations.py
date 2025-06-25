@@ -205,6 +205,13 @@ for subfolder in os.listdir(out_folder):
 
 results_df = pd.DataFrame(list_of_results_df_rows)
 
+# first r2s, then rmse
+column_order = list(
+    map(lambda i: f"equation_i{i}_r2", range(number_of_equations))
+) + list(map(lambda i: f"equation_i{i}_rmse", range(number_of_equations)))
+
+results_df = results_df[column_order + ["number_truth_values", "OBJECTID", "NAME"]]
+
 results_df.to_csv("results.csv")
 
 print("Results: \n", results_df)

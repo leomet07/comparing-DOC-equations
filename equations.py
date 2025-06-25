@@ -1,17 +1,18 @@
-def get_1_4_ratio_and_2_4_ratio(bands):
-    return (bands[0] / bands[3]), (bands[1] / bands[3])  # zero-indexed
+import numpy as np
 
-
-def get_1_4_ratio_and_3_4_ratio(bands):
-    return (bands[0] / bands[3]), (bands[2] / bands[3])  # zero-indexed
-
-
-def get_3_4_ratio_and_4_5_ratio(bands):
-    return (bands[2] / bands[3]), (bands[3] / bands[4])  # zero-indexed
-
-
+# this is all zero indexes
 equation_functions = [
-    get_1_4_ratio_and_2_4_ratio,
-    get_1_4_ratio_and_3_4_ratio,
-    get_3_4_ratio_and_4_5_ratio,
+    lambda bands: [(bands[2] / bands[4]), (bands[3])],
+    lambda bands: [np.log(bands[1] / bands[4]), (bands[0])],  # zero-indexed
+    lambda bands: ((bands[2] / bands[4]), (bands[2])),
+    lambda bands: (np.log(bands[2] / bands[3]), np.log(bands[3] / bands[4])),
+    #
+    lambda bands: ((bands[2] / bands[3]), (bands[3] / bands[4])),
+    lambda bands: (np.log(bands[1] / bands[4]), (bands[1])),
+    lambda bands: ((bands[1] / bands[4]), (bands[1])),
+    lambda bands: ((bands[2] / bands[3]), (bands[2])),
+    #
+    lambda bands: ((bands[0] / bands[3]), (bands[1] / bands[3])),
+    lambda bands: ((bands[0] / bands[3]), (bands[2] / bands[3])),
+    lambda bands: ((bands[2] / bands[3]), (bands[1])),
 ]

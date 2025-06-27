@@ -484,7 +484,6 @@ def maskL8sr(image):
         .And(qa.bitwiseAnd(cloudsBitMask).eq(0))  # want not high cloud confidence
         .And(qa.bitwiseAnd(cirrusBitMask).eq(0))
         .And(qa.bitwiseAnd(waterBitMask).neq(0))  # keep water
-        # tho question, if 1 is water, then why is this working if we are keeping it when it is zero(land)
     )
     return image.updateMask(mask)
 

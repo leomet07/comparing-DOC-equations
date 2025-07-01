@@ -19,3 +19,5 @@ venv/
 *.sh
 
 *.ods
+
+acolite_out

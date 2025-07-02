@@ -20,4 +20,4 @@ venv/
 
 *.ods
 
-acolite_out
+acolite_out*

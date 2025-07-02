@@ -79,7 +79,7 @@ for subfolder in subfolders:
         isodate_end = str(end_date)
         print("isodate_start: ", isodate_start)
         sensors = "L8_OLI"  # @param ["L8_OLI"]
-        output_dir = f"/home/leo/Documents/nasa/waterquality/comparing-DOC-equations/acolite_out/lake{objectid}_{date_str}/"  # @param {type:"string"}
+        output_dir = f"/home/leo/Documents/nasa/waterquality/comparing-DOC-equations/acolite_out_rhorc/lake{objectid}_{date_str}/"  # @param {type:"string"}
 
         settings = {}
         gee_settings = {}
@@ -126,7 +126,7 @@ for subfolder in subfolders:
 
         # find all output files
         output_files = list(
-            filter(lambda x: "L2W" in x and "crop_Rrs" in x, os.listdir(output_dir))
+            filter(lambda x: "L2W" in x and "crop_rhorc" in x, os.listdir(output_dir))
         )
 
         base_stub = output_files[0]
@@ -177,7 +177,7 @@ for subfolder in subfolders:
         kwargs.update(count=len(band_names))
 
         true_output_dir = os.path.join(
-            "/home/leo/Documents/nasa/waterquality/comparing-DOC-equations/all_acolite_true_out",
+            "/home/leo/Documents/nasa/waterquality/comparing-DOC-equations/all_acolite_true_out_rhorc",
             subfolder,
         )
         if not os.path.exists(true_output_dir):

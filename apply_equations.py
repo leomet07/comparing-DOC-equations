@@ -25,6 +25,12 @@ def get_ratio_from_tif(tif_path, equation_functions):
 
         bands = src.read()
 
+        if "acolite" in tif_path:
+            # weird large value as nan bug in acolite tifs
+            bands[bands > 1] = (
+                np.nan
+            )  # surface reflactances should be < 1, remove the weird 9.96921e+36 values from acolite tifs
+
         list_of_ratio_tuples = []
 
         with np.errstate(divide="ignore", invalid="ignore"):
@@ -44,7 +50,7 @@ def get_ratio_from_tif(tif_path, equation_functions):
 
 number_of_equations = len(equations.equation_functions)
 
-out_folder = "all_lake_images_three_front_and_back_water_mask"
+out_folder = "all_acolite_true_out_rhorc"
 
 display = False
 
@@ -176,6 +182,11 @@ for subfolder in subfolders:
     this_results_reg_eq = []
     for i in range(number_of_equations):
         X = input_means_by_equation[i]
+
+        if len(X) == 0:
+            print(f"{subfolder} does not have any valid tifs!")
+            continue
+
         all_X_s_ever_by_equation[i].extend(X)
 
         # see slope of line of best fit

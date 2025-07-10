@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import os
 from matplotlib import pyplot as plt
+from matplotlib.lines import Line2D
 import inspect_shapefile
 from shapely.geometry import Point
 from sklearn.metrics import r2_score, root_mean_squared_error
@@ -44,7 +45,7 @@ def get_bands_from_tif(tif_path):
         )
 
 
-def get_band_means(out_folder, subfolder):
+def get_band_means(out_folder, subfolder, flyover_date):
     band_pixels_at_centroid_across_this_year = [[] for _ in range(5)]
 
     tif_folder_path = os.path.join(out_folder, subfolder)
@@ -52,30 +53,31 @@ def get_band_means(out_folder, subfolder):
     for filename in os.listdir(tif_folder_path):
         tif_filepath = os.path.join(tif_folder_path, filename)
 
-        if "2020" not in filename or "-05-" not in filename:  # initial july 2020 plots
+        if flyover_date not in filename:  # initial july 2020 plots
             continue
         # filter filepath to a certian year only
 
-        (
-            bands,
-            profile,
-            transform,
-            scale,
-            x_res,
-            closest_insitu_date,
-            objectid,
-        ) = get_bands_from_tif(tif_filepath)
+        try:
+            (
+                bands,
+                profile,
+                transform,
+                scale,
+                x_res,
+                closest_insitu_date,
+                objectid,
+            ) = get_bands_from_tif(tif_filepath)
+        except rasterio.errors.RasterioIOError as e:
+            continue
 
         # get lat and long
         centroid_lat = inspect_shapefile.truth_data[
             (inspect_shapefile.truth_data["OBJECTID"] == float(objectid))
-            & (inspect_shapefile.truth_data["DATE_SMP"] == closest_insitu_date)
         ]["Lat-Cent"].iloc[
             0
         ]  # take first entry, lake centroid lat will be the same for any matched insitu
         centroid_long = inspect_shapefile.truth_data[
             (inspect_shapefile.truth_data["OBJECTID"] == float(objectid))
-            & (inspect_shapefile.truth_data["DATE_SMP"] == closest_insitu_date)
         ]["Lon-Cent"].iloc[
             0
         ]  # take first entry, lake centroid long will be the same for any matched insitu
@@ -121,7 +123,10 @@ def get_band_means(out_folder, subfolder):
     return band_means
 
 
-sample_out_folder = "all_lake_images_three_front_and_back_water_mask"  # just for getting the different lake subfolders
+flyover_date = "2021-08-03"
+sample_out_folder = (
+    "all_flyover_of_lakes_main"  # just for getting the different lake subfolders
+)
 subfolders = list(os.listdir(sample_out_folder))
 subfolders.sort()
 for subfolder in subfolders:
@@ -133,23 +138,26 @@ for subfolder in subfolders:
     band_names = [f"B{i+1}" for i in range(5)]
 
     band_means_l2 = (
-        np.array(
-            get_band_means(
-                "all_lake_images_three_front_and_back_water_mask_level_2", subfolder
-            )
-        )
+        np.array(get_band_means("all_flyover_of_lakes_L2", subfolder, flyover_date))
         * 0.0000275
     ) - 0.2
     band_means_main = get_band_means(
-        "all_lake_images_three_front_and_back_water_mask", subfolder
+        "all_flyover_of_lakes_main", subfolder, flyover_date
     )
-    band_means_acolite = get_band_means("all_acolite_true_out_rhorc", subfolder)
+    # band_means_acolite = get_band_means("all_flyover_acolite", subfolder, flyover_date)
 
-    plt.plot(band_names, band_means_l2)
-    plt.plot(band_names, band_means_main)
-    plt.plot(band_names, band_means_acolite)
-    plt.legend(["l2", "main", "acolite"])
-    plt.xlabel("Band")
-    plt.ylabel("Mean Reflectance")
-    plt.title(f"{subfolder} reflectances")
-    plt.show()
+    plt.plot(band_names, band_means_l2, color="green")
+    plt.plot(band_names, band_means_main, color="blue")
+    # plt.plot(band_names, band_means_acolite)
+
+
+plt.xlabel("Band")
+plt.ylabel("Mean Reflectance")
+plt.title(f"{flyover_date} Mean Reflectances")
+plt.legend(
+    handles=[
+        Line2D([0], [0], color="green", lw=4, label="L2"),
+        Line2D([0], [0], color="blue", lw=4, label="MAIN"),
+    ]
+)
+plt.show()

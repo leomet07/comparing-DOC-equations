@@ -50,7 +50,7 @@ import acolite.gee
 
 open_gee_project(project=project)
 
-target_dir = "all_lake_images_three_front_and_back_water_mask_level_2"
+target_dir = "all_flyover_of_lakes_L2"
 
 subfolders = list(os.listdir(target_dir))
 subfolders.sort()
@@ -64,22 +64,23 @@ for subfolder in subfolders:
     for filename in os.listdir(tif_folder_path):
         tif_filepath = os.path.join(tif_folder_path, filename)
 
-        with rasterio.open(tif_filepath) as src:
-            tags = src.tags()
-            date_str = tags["date"]
-            date = pd.to_datetime(date_str)  # satellite date
-            objectid = int(float(tags["objectid"]))
-            start_date = date - pd.DateOffset(days=1)
-            end_date = date + pd.DateOffset(days=1)
-
-            LakeShp = import_assets(objectid, project)  # get shape of lake
+        try:
+            with rasterio.open(tif_filepath) as src:
+                tags = src.tags()
+                date_str = tags["date"]
+                date = pd.to_datetime(date_str)  # satellite date
+                objectid = int(float(tags["objectid"]))
+                start_date = date - pd.DateOffset(days=1)
+                end_date = date + pd.DateOffset(days=1)
+        except rasterio.errors.RasterioIOError as e:
+            continue
+        LakeShp = import_assets(objectid, project)  # get shape of lake
 
         # @markdown Basic settings
         isodate_start = str(start_date)
         isodate_end = str(end_date)
-        print("isodate_start: ", isodate_start)
         sensors = "L8_OLI"  # @param ["L8_OLI"]
-        output_dir = f"/home/leo/Documents/nasa/waterquality/comparing-DOC-equations/acolite_out_rhorc/lake{objectid}_{date_str}/"  # @param {type:"string"}
+        output_dir = f"/home/leo/Documents/nasa/waterquality/comparing-DOC-equations/acolite_out_all_flyover/lake{objectid}_{date_str}/"  # @param {type:"string"}
 
         settings = {}
         gee_settings = {}
@@ -177,7 +178,7 @@ for subfolder in subfolders:
         kwargs.update(count=len(band_names))
 
         true_output_dir = os.path.join(
-            "/home/leo/Documents/nasa/waterquality/comparing-DOC-equations/all_acolite_true_out_rhorc",
+            "/home/leo/Documents/nasa/waterquality/comparing-DOC-equations/all_flyover_acolite",
             subfolder,
         )
         if not os.path.exists(true_output_dir):

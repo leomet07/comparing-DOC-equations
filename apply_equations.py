@@ -25,6 +25,9 @@ def get_ratio_from_tif(tif_path, equation_functions):
 
         bands = src.read()
 
+        # replace all -infs with nan
+        bands[~np.isfinite(bands)] = np.nan
+
         if "acolite" in tif_path:
             # weird large value as nan bug in acolite tifs
             bands[bands > 1] = (
@@ -50,7 +53,7 @@ def get_ratio_from_tif(tif_path, equation_functions):
 
 number_of_equations = len(equations.equation_functions)
 
-out_folder = "all_acolite_true_out_rhorc"
+out_folder = "all_lake_images_three_front_and_back_water_mask_level_2"
 
 display = False
 
@@ -145,7 +148,9 @@ for subfolder in subfolders:
                 mean_ratio_tuple = []
                 for subratio in ratio_tuple:
                     #  number of values to be averaging
-                    number_of_valid_pixels_within_centroid = np.sum(~np.isnan(subratio))
+                    number_of_valid_pixels_within_centroid = np.sum(
+                        np.isfinite(subratio)
+                    )
 
                     if number_of_valid_pixels_within_centroid < 3:
                         is_any_mean_ratio_nan = (

@@ -34,6 +34,11 @@ def get_bands_from_tif(tif_path):
                 np.nan
             )  # surface reflactances should be < 1, remove the weird 9.96921e+36 values from acolite tifs
 
+        if (
+            "L2" in tif_path
+        ):  # level 2 data correction https://www.usgs.gov/landsat-missions/landsat-collection-2-surface-reflectance
+            bands = bands * 0.0000275 - 0.2
+
         return (
             bands,
             profile,
@@ -108,6 +113,7 @@ def get_band_means(out_folder, subfolder, flyover_date):
             #  number of values to be averaging
             keep_valid_pixels_mask = np.isfinite(band_flatten)
             valid_pixels = band_flatten[keep_valid_pixels_mask]
+            valid_pixels = valid_pixels[valid_pixels < 0.1]
 
             if len(valid_pixels) < 3:  # cloudy
                 break
@@ -118,12 +124,15 @@ def get_band_means(out_folder, subfolder, flyover_date):
 
     for i in range(5):
         # this will be warning if empty and will return nan, causing blank graph
+        if len(band_pixels_at_centroid_across_this_year[i]) == 0:
+            band_meawns = []  # reset, don't use this image
+            break
         band_means.append(np.nanmean(band_pixels_at_centroid_across_this_year[i]))
 
     return band_means
 
 
-flyover_date = "2021-08-03"
+flyover_date = "2021-08-"
 sample_out_folder = (
     "all_flyover_of_lakes_main"  # just for getting the different lake subfolders
 )
@@ -132,32 +141,44 @@ subfolders.sort()
 for subfolder in subfolders:
     if os.path.isfile(os.path.join(sample_out_folder, subfolder)):
         continue  # this is the log file
-    if subfolder == "rondaxe,_lake_tifs" or subfolder == "otter_lake_tifs":
+    if (
+        subfolder == "rondaxe,_lake_tifs"
+        or subfolder == "otter_lake_tifs"
+        or subfolder == "queer_lake_tifs"
+    ):
         continue  # temporary, rondaxe does not have enough pixels around centroid
 
     band_names = [f"B{i+1}" for i in range(5)]
 
-    band_means_l2 = (
-        np.array(get_band_means("all_flyover_of_lakes_L2", subfolder, flyover_date))
-        * 0.0000275
-    ) - 0.2
+    band_means_l2 = get_band_means("all_flyover_of_lakes_L2", subfolder, flyover_date)
+
     band_means_main = get_band_means(
         "all_flyover_of_lakes_main", subfolder, flyover_date
     )
-    # band_means_acolite = get_band_means("all_flyover_acolite", subfolder, flyover_date)
+    band_means_acolite = get_band_means("all_flyover_acolite", subfolder, flyover_date)
 
-    plt.plot(band_names, band_means_l2, color="green")
-    plt.plot(band_names, band_means_main, color="blue")
-    # plt.plot(band_names, band_means_acolite)
+    if len(band_means_l2) != 0:
+        print("L2 plotted:", subfolder)
+        plt.plot(band_names, band_means_l2, color="green")
+    if len(band_means_main) != 0:
+        print("MAIN plotted:", subfolder)
+        plt.plot(band_names, band_means_main, color="blue")
+    if len(band_means_acolite) != 0:
+        print("ACOLITE plotted:", subfolder)
+        try:
+            plt.plot(band_names, band_means_acolite, color="red")
+        except Exception as e:
+            print(e)
 
 
 plt.xlabel("Band")
 plt.ylabel("Mean Reflectance")
-plt.title(f"{flyover_date} Mean Reflectances")
+plt.title(f"2021 August Mean Reflectances")
 plt.legend(
     handles=[
         Line2D([0], [0], color="green", lw=4, label="L2"),
         Line2D([0], [0], color="blue", lw=4, label="MAIN"),
+        Line2D([0], [0], color="red", lw=4, label="ACOLITE"),
     ]
 )
 plt.show()

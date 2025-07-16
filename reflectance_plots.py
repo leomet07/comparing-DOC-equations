@@ -37,7 +37,7 @@ def get_bands_from_tif(tif_path):
         if (
             "L2" in tif_path
         ):  # level 2 data correction https://www.usgs.gov/landsat-missions/landsat-collection-2-surface-reflectance
-            bands = bands * 0.0000275 - 0.2
+            bands = bands * 0.0000275 - 0.2  # operations on nan/inf are still nan/inf
 
         return (
             bands,

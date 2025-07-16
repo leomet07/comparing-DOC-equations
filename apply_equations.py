@@ -34,6 +34,11 @@ def get_ratio_from_tif(tif_path, equation_functions):
                 np.nan
             )  # surface reflactances should be < 1, remove the weird 9.96921e+36 values from acolite tifs
 
+        if (
+            "L2" in tif_path
+        ):  # level 2 data correction https://www.usgs.gov/landsat-missions/landsat-collection-2-surface-reflectance
+            bands = bands * 0.0000275 - 0.2  # operations on nan/inf are still nan/inf
+
         list_of_ratio_tuples = []
 
         with np.errstate(divide="ignore", invalid="ignore"):

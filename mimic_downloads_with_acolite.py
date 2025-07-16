@@ -126,9 +126,14 @@ for subfolder in subfolders:
         # Now combine into one
 
         # find all output files
-        output_files = list(
-            filter(lambda x: "L2W" in x and "crop_rhorc" in x, os.listdir(output_dir))
-        )
+        try:
+            output_files = list(
+                filter(
+                    lambda x: "L2W" in x and "crop_rhorc" in x, os.listdir(output_dir)
+                )
+            )
+        except FileNotFoundError as e:
+            continue
 
         base_stub = output_files[0]
 

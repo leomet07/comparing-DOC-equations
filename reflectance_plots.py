@@ -113,7 +113,9 @@ def get_band_means(out_folder, subfolder, flyover_date):
             #  number of values to be averaging
             keep_valid_pixels_mask = np.isfinite(band_flatten)
             valid_pixels = band_flatten[keep_valid_pixels_mask]
-            valid_pixels = valid_pixels[valid_pixels < 0.1]
+            valid_pixels = valid_pixels[
+                valid_pixels < 0.1
+            ]  # filter out outliers with high reflectances (clouds)
 
             if len(valid_pixels) < 3:  # cloudy
                 break

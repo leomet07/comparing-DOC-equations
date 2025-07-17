@@ -39,6 +39,10 @@ def get_ratio_from_tif(tif_path, equation_functions):
         ):  # level 2 data correction https://www.usgs.gov/landsat-missions/landsat-collection-2-surface-reflectance
             bands = bands * 0.0000275 - 0.2  # operations on nan/inf are still nan/inf
 
+        bands[bands > 0.1] = (
+            np.nan
+        )  # keep array shape but remove high reflectance outliers (clouds)
+
         list_of_ratio_tuples = []
 
         with np.errstate(divide="ignore", invalid="ignore"):
@@ -58,7 +62,7 @@ def get_ratio_from_tif(tif_path, equation_functions):
 
 number_of_equations = len(equations.equation_functions)
 
-out_folder = "all_lake_images_three_front_and_back_water_mask_level_2"
+out_folder = "all_lake_images_three_front_and_back_water_mask_main"
 
 display = False
 

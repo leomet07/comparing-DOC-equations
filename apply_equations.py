@@ -28,12 +28,6 @@ def get_ratio_from_tif(tif_path, equation_functions):
         # replace all -infs with nan
         bands[~np.isfinite(bands)] = np.nan
 
-        if "acolite" in tif_path:
-            # weird large value as nan bug in acolite tifs
-            bands[bands > 1] = (
-                np.nan
-            )  # surface reflactances should be < 1, remove the weird 9.96921e+36 values from acolite tifs
-
         if (
             "L2" in tif_path
         ):  # level 2 data correction https://www.usgs.gov/landsat-missions/landsat-collection-2-surface-reflectance
@@ -42,6 +36,7 @@ def get_ratio_from_tif(tif_path, equation_functions):
         bands[bands > 0.1] = (
             np.nan
         )  # keep array shape but remove high reflectance outliers (clouds)
+        # also this removes acolite outofbound nan values (10^36)
 
         list_of_ratio_tuples = []
 

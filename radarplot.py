@@ -22,7 +22,10 @@ def df_with_normalization_across_ten_eqs_by_lake(df, lakeid, categories):
 
         scaled_only_values_of_interest = only_values_of_interest.apply(
             lambda row: (row - row.min()) / (row.max() - row.min()), axis=1
-        ).values.tolist()[0]
+        )
+        scaled_only_values_of_interest = scaled_only_values_of_interest.values.tolist()[
+            0
+        ]
 
         for i in range(len(scaled_only_values_of_interest)):
             df.loc[only_lake_df_index, columns_of_interest[i]] = (
@@ -49,48 +52,63 @@ def plot_lake(ax, df, lakeid, equation_index, columns_to_plot, fill_color):
 alg_name = apply_equations.out_folder.split("_")[
     -1
 ].upper()  # our convention is last underscore contains alg name
-lake_of_interest = inspect_shapefile.lake_infos_of_interest[1]
-lakeid = lake_of_interest["OBJECTID"]
-lakename = lake_of_interest["NAME"]
 
-
-# -------------------------- Radar plot ---------------------------------
-# number of variable
-categories = ["r2", "rmse", "mae"]
-N = len(categories)
-
-df = df_with_normalization_across_ten_eqs_by_lake(
-    apply_equations.results_df, lakeid, categories
+number_of_subplots = 4
+num_rows = 2
+num_cols = number_of_subplots // num_rows
+fig, axs = plt.subplots(
+    nrows=num_rows, ncols=num_cols, subplot_kw={"projection": "polar"}
 )
 
-# What will be the angle of each axis in the plot? (we divide the plot / number of variable)
-angles = [n / float(N) * 2 * pi for n in range(N)]
-angles += angles[:1]
+subplot_index = 0
+for lake in apply_equations.results_df.iloc:
+    lakeid = lake["OBJECTID"]
+    lakename = lake["NAME"]
+    if lake["number_truth_values"] < 8:
+        continue
+    if float(lakeid) == float(298247):  # moss lake
+        continue
+    ax = axs[subplot_index // num_cols, subplot_index % num_cols]
 
-# Initialise the spider plot
-ax = plt.subplot(111, polar=True)
+    # -------------------------- Radar plot ---------------------------------
+    # number of variable
+    categories = ["r2", "rmse", "mae"]
+    N = len(categories)
 
-# If you want the first axis to be on top:
-ax.set_theta_offset(pi / 2)
-ax.set_theta_direction(-1)
-
-# Draw one axe per variable + add labels
-plt.xticks(angles[:-1], categories)
-
-# Draw ylabels
-ax.set_rlabel_position(0)
-plt.yticks([0, 0.5, 1], ["0.1", "0.5", "1.0"], color="grey", size=7)
-plt.ylim(0, 1)
-
-
-# plot every equation
-for equation_index in range(10):
-    columns_to_plot = list(
-        map(lambda category: f"equation_i{equation_index}_{category}", categories)
+    df = df_with_normalization_across_ten_eqs_by_lake(
+        apply_equations.results_df, lakeid, categories
     )
-    plot_lake(ax, df, lakeid, equation_index, columns_to_plot, "r")
 
+    # What will be the angle of each axis in the plot? (we divide the plot / number of variable)
+    angles = [n / float(N) * 2 * pi for n in range(N)]
+    angles += angles[:1]
 
-ax.legend()
-plt.title(f"{alg_name} performance for {lakename}")
+    # Initialise the spider plot
+
+    # If you want the first axis to be on top:
+    ax.set_theta_offset(pi / 2)
+    ax.set_theta_direction(-1)
+
+    # Draw one axe per variable + add labels
+    ax.set_xticks(angles[:-1], minor=False)
+    ax.set_xticklabels(categories, minor=False)
+
+    # Draw ylabels
+    ax.set_rlabel_position(0)
+    ax.set_yticks(
+        [0, 0.5, 1], labels=["0.1", "0.5", "1.0"], color="grey", size=7, minor=False
+    )
+    ax.set_ylim(0, 1)
+
+    # plot every equation
+    for equation_index in range(10):
+        columns_to_plot = list(
+            map(lambda category: f"equation_i{equation_index}_{category}", categories)
+        )
+        plot_lake(ax, df, lakeid, equation_index, columns_to_plot, "r")
+
+    # ax.legend()
+    subplot_index += 1
+    ax.set_title(f"{lakename}")
+plt.suptitle(f"{alg_name} performance")
 plt.show()

@@ -60,14 +60,9 @@ fig, axs = plt.subplots(
     nrows=num_rows, ncols=num_cols, subplot_kw={"projection": "polar"}
 )
 
+lakeids_to_graph = [298315, 298126, 298351, 298091]
 subplot_index = 0
-for lake in apply_equations.results_df.iloc:
-    lakeid = lake["OBJECTID"]
-    lakename = lake["NAME"]
-    if lake["number_truth_values"] < 8:
-        continue
-    if float(lakeid) == float(298247):  # moss lake
-        continue
+for lakeid in lakeids_to_graph:
     ax = axs[subplot_index // num_cols, subplot_index % num_cols]
 
     # -------------------------- Radar plot ---------------------------------
@@ -78,6 +73,10 @@ for lake in apply_equations.results_df.iloc:
     df = df_with_normalization_across_ten_eqs_by_lake(
         apply_equations.results_df, lakeid, categories
     )
+
+    lakename = df[df["OBJECTID"] == lakeid]["NAME"].iloc[0]
+    number_of_truth_values = df[df["OBJECTID"] == lakeid]["number_truth_values"].iloc[0]
+    print(f"{lakename} has {number_of_truth_values} values.")
 
     # What will be the angle of each axis in the plot? (we divide the plot / number of variable)
     angles = [n / float(N) * 2 * pi for n in range(N)]

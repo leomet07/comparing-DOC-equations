@@ -6,7 +6,7 @@ import os
 from matplotlib import pyplot as plt
 import inspect_shapefile
 from shapely.geometry import Point
-from sklearn.metrics import r2_score, root_mean_squared_error
+from sklearn.metrics import r2_score, root_mean_squared_error, mean_absolute_error
 import rasterio.features
 import warnings
 from sklearn.linear_model import LinearRegression
@@ -207,9 +207,11 @@ for subfolder in subfolders:
         predicted_doc = reg.predict(X)
         regression_r2_score = r2_score(true_ln_doc_values, predicted_doc)
         regression_rmse = root_mean_squared_error(true_ln_doc_values, predicted_doc)
+        regression_mae = mean_absolute_error(true_ln_doc_values, predicted_doc)
 
         results_df_row[f"equation_i{i}_r2"] = regression_r2_score
         results_df_row[f"equation_i{i}_rmse"] = regression_rmse
+        results_df_row[f"equation_i{i}_mae"] = regression_mae
         this_results_reg_eq.append(reg)
 
     proper_lake_name = inspect_shapefile.shp_df[
@@ -230,9 +232,11 @@ for subfolder in subfolders:
 results_df = pd.DataFrame(list_of_results_df_rows)
 
 # first r2s, then rmse
-column_order = list(
-    map(lambda i: f"equation_i{i}_r2", range(number_of_equations))
-) + list(map(lambda i: f"equation_i{i}_rmse", range(number_of_equations)))
+column_order = (
+    list(map(lambda i: f"equation_i{i}_r2", range(number_of_equations)))
+    + list(map(lambda i: f"equation_i{i}_rmse", range(number_of_equations)))
+    + list(map(lambda i: f"equation_i{i}_mae", range(number_of_equations)))
+)
 
 results_df = results_df[column_order + ["number_truth_values", "OBJECTID", "NAME"]]
 

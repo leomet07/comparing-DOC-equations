@@ -106,8 +106,12 @@ for lakeid in lakeids_to_graph:
         )
         plot_lake(ax, df, lakeid, equation_index, columns_to_plot, "r")
 
-    # ax.legend()
-    subplot_index += 1
     ax.set_title(f"{lakename}")
+
+    if subplot_index == (number_of_subplots - 1):
+        handles, labels = ax.get_legend_handles_labels()
+        fig.legend(handles, labels, loc="upper right")
+
+    subplot_index += 1
 plt.suptitle(f"{alg_name} performance")
 plt.show()

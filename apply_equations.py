@@ -57,9 +57,9 @@ def get_ratio_from_tif(tif_path, equation_functions):
 
 number_of_equations = len(equations.equation_functions)
 
+# out_folder = "all_lake_images_three_front_and_back_water_mask_L2"
 # out_folder = "all_lake_images_three_front_and_back_water_mask_main"
-out_folder = "all_lake_images_three_front_and_back_water_mask_L2"
-# out_folder = "all_lake_images_three_front_and_back_water_mask_L"
+out_folder = "all_acolite_true_out_rhorc_acolite"
 
 display = False
 

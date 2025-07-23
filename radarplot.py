@@ -44,7 +44,7 @@ def plot_lake(ax, df, lakeid, equation_index, columns_to_plot, fill_color):
     # add first value back so polygon loops around
     values += values[0:1]
 
-    ax.plot(angles, values, label=f"Equation Index {equation_index}")
+    ax.plot(angles, values, linewidth=2, label=f"Equation Index {equation_index}")
     ax.fill(angles, values, alpha=0.1)
 
 
@@ -69,9 +69,10 @@ for lakeid in lakeids_to_graph:
     # number of variable
     categories = ["r2", "rmse", "mae"]
     N = len(categories)
+    categories_to_normalize = ["r2", "rmse", "mae"]  # try not using r2 here
 
     df = df_with_normalization_across_ten_eqs_by_lake(
-        apply_equations.results_df, lakeid, categories
+        apply_equations.results_df, lakeid, categories_to_normalize
     )
 
     lakename = df[df["OBJECTID"] == lakeid]["NAME"].iloc[0]
@@ -93,10 +94,8 @@ for lakeid in lakeids_to_graph:
     ax.set_xticklabels(categories, minor=False)
 
     # Draw ylabels
-    ax.set_rlabel_position(0)
-    ax.set_yticks(
-        [0, 0.5, 1], labels=["0.1", "0.5", "1.0"], color="grey", size=7, minor=False
-    )
+    ax.set_rlabel_position(2 * pi / N)
+    ax.set_yticks([0, 0.5, 1], labels=["0.1", "0.5", "1.0"], color="grey", size=7)
     ax.set_ylim(0, 1)
 
     # plot every equation

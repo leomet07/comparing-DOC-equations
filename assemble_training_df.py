@@ -46,6 +46,7 @@ def get_bands_from_tif(tif_path):
 
 
 def add_training_entries_from_algorithim_out_folder(out_folder, training_entries):
+    algorithim_name = out_folder.split("_")[-1].upper()
     subfolders = list(os.listdir(out_folder))
     subfolders.sort()
     for subfolder in subfolders:
@@ -132,7 +133,7 @@ def add_training_entries_from_algorithim_out_folder(out_folder, training_entries
                 current_training_entry[band_name] = mean_value
 
             # Recod alg name
-            # dic["alg"] = "acolite"
+            current_training_entry["alg"] = algorithim_name
 
             training_entries.append(current_training_entry)
 

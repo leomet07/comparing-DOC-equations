@@ -4,9 +4,17 @@ import numpy as np
 import pandas as pd
 import os
 from matplotlib import pyplot as plt
-import inspect_shapefile
 from shapely.geometry import Point
 import rasterio.features
+import sys
+
+if len(sys.argv) <= 1:
+    print(
+        "You need to specify which algorithm out folders you are assembling as arguments."
+    )
+    sys.exit(1)
+
+import inspect_shapefile
 
 
 def get_bands_from_tif(tif_path):
@@ -140,15 +148,10 @@ def add_training_entries_from_algorithim_out_folder(out_folder, training_entries
 
 
 training_entries = []
-add_training_entries_from_algorithim_out_folder(
-    "all_lake_images_three_front_and_back_water_mask_L2", training_entries
-)
-add_training_entries_from_algorithim_out_folder(
-    "all_lake_images_three_front_and_back_water_mask_main", training_entries
-)
-add_training_entries_from_algorithim_out_folder(
-    "all_acolite_true_out_rhorc_acolite", training_entries
-)
+
+
+for folder in sys.argv[1:]:
+    add_training_entries_from_algorithim_out_folder(folder, training_entries)
 
 
 training_df = pd.DataFrame(training_entries)

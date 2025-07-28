@@ -134,6 +134,7 @@ def add_training_entries_from_algorithim_out_folder(out_folder, training_entries
 
             # Recod alg name
             current_training_entry["alg"] = algorithim_name
+            current_training_entry["lakeid"] = objectid
 
             training_entries.append(current_training_entry)
 

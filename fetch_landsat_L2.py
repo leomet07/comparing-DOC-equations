@@ -278,6 +278,7 @@ def export_raster_main_landsat_L2(
         "scale": scale,
         "satellite": "landsat",
         "image_index": image_index,
+        "algorithm": "L2",
     }
     with rasterio.open(out_filepath, "r+") as dst:
         dst.update_tags(**new_metadata)

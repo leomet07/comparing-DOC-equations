@@ -190,6 +190,7 @@ for subfolder in subfolders:
             os.makedirs(true_output_dir)
 
         output_file = os.path.join(true_output_dir, f"{subfolder}_{date_str}_ALL.tif")
+        tags["algorithm"] = "ACOLITE"
         with rasterio.open(output_file, "w", **kwargs) as dst:
             dst.update_tags(**tags)
 

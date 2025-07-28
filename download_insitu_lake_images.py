@@ -2,7 +2,6 @@ from tqdm import tqdm
 import inspect_shapefile
 import os
 import pandas as pd
-import fetch_landsat
 from pprint import pprint
 import multiprocessing
 import random
@@ -67,15 +66,29 @@ def gen_all_lakes_all_dates_params(project, OUT_DIR, days_before_and_after_insit
 def wrapper_export(
     args,
 ):  # this function allows ONE param to be spread onto many params for a function
-    fetch_landsat.export_raster_main_landsat(*args)
+    export_raster_main_landsat(*args)
 
 
 if __name__ == "__main__":
     project = sys.argv[1]
     out_dir = sys.argv[2]
-    days_before_and_after_insitu = int(sys.argv[3])
+    alg = str(sys.argv[3]).upper()
 
-    fetch_landsat.open_gee_project(project=project)
+    if alg == "L2":
+        from fetch_landsat_L2 import (
+            export_raster_main_landsat_L2 as export_raster_main_landsat,
+            open_gee_project,
+        )
+    elif alg == "MAIN":
+        from fetch_landsat import export_raster_main_landsat, open_gee_project
+    else:
+        print(f'ALG "{alg}" is not supported.')
+
+    print("Using ALG: ", alg)
+
+    days_before_and_after_insitu = int(sys.argv[4])
+
+    open_gee_project(project=project)
 
     manager = multiprocessing.Manager()
     scale_cache = manager.dict()  # empty by default

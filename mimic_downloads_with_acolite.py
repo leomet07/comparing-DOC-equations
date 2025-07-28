@@ -14,7 +14,7 @@ from pprint import pprint
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 
 
-sys.path.append("/home/leo/Documents/nasa/waterquality/comparing-DOC-equations/acolite")
+sys.path.append(os.path.join(os.getcwd(), "acolite"))
 
 # CLOUD_FILTER = 50
 
@@ -50,7 +50,21 @@ import acolite.gee
 
 open_gee_project(project=project)
 
-target_dir = "all_flyover_of_lakes_L2"
+if len(sys.argv) != 4:
+    print("Pass three directories into this script: ")
+    print(
+        "python mimic_downloads_with_acolite.py <TARGET> <INTERMEDIATE> <TRUE_OUTPUT>"
+    )
+
+target_dir = sys.argv[1]
+
+intermediate_storage_dir = os.path.abspath(
+    sys.argv[2]
+)  # needs to be abs path (will be left alone if alr absolute)
+
+print("INTER DIR: ", intermediate_storage_dir)
+
+true_output_dir = sys.argv[3]
 
 subfolders = list(os.listdir(target_dir))
 subfolders.sort()
@@ -80,7 +94,9 @@ for subfolder in subfolders:
         isodate_start = str(start_date)
         isodate_end = str(end_date)
         sensors = "L8_OLI"  # @param ["L8_OLI"]
-        output_dir = f"/home/leo/Documents/nasa/waterquality/comparing-DOC-equations/acolite_out_all_flyover/lake{objectid}_{date_str}/"  # @param {type:"string"}
+        output_dir = os.path.join(
+            intermediate_storage_dir, f"lake{objectid}_{date_str}"
+        )
 
         settings = {}
         gee_settings = {}
@@ -129,7 +145,11 @@ for subfolder in subfolders:
         try:
             output_files = list(
                 filter(
-                    lambda x: "L2W" in x and "crop_rhorc" in x, os.listdir(output_dir)
+                    lambda x: ("L2W" in x)
+                    and ("crop_rhorc" in x)
+                    and ("2201.tif" not in x)
+                    and ("1609.tif" not in x),
+                    os.listdir(output_dir),
                 )
             )
         except FileNotFoundError as e:
@@ -149,6 +169,7 @@ for subfolder in subfolders:
 
             new_crs = "EPSG:4326"
             # reproject raster to project crs
+
             with rasterio.open(input_file) as src:
                 src_crs = src.crs
                 transform, width, height = calculate_default_transform(
@@ -182,14 +203,16 @@ for subfolder in subfolders:
                 )
         kwargs.update(count=len(band_names))
 
-        true_output_dir = os.path.join(
-            "/home/leo/Documents/nasa/waterquality/comparing-DOC-equations/all_flyover_acolite",
+        true_output_dir_with_subfolder = os.path.join(
+            true_output_dir,
             subfolder,
         )
-        if not os.path.exists(true_output_dir):
-            os.makedirs(true_output_dir)
+        if not os.path.exists(true_output_dir_with_subfolder):
+            os.makedirs(true_output_dir_with_subfolder)
 
-        output_file = os.path.join(true_output_dir, f"{subfolder}_{date_str}_ALL.tif")
+        output_file = os.path.join(
+            true_output_dir_with_subfolder, f"{subfolder}_{date_str}_ALL.tif"
+        )
         tags["algorithm"] = "ACOLITE"
         with rasterio.open(output_file, "w", **kwargs) as dst:
             dst.update_tags(**tags)

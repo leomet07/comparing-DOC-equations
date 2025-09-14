@@ -180,7 +180,7 @@ def get_raster(start_date, end_date, LakeShp, scale) -> ee.Image:
     raise Exception("IMAGE IS ALL BLANK :(((")
 
 
-def export_raster_main_landsat_L2(
+def export_raster_main_landsat_five_L2(
     out_dir: str,
     out_filename: str,
     project: str,
@@ -260,7 +260,7 @@ if __name__ == "__main__":
 
     open_gee_project(project=project)
 
-    export_raster_main_landsat_L2(
+    export_raster_main_landsat_five_L2(
         out_dir=out_dir,
         out_filename=out_filename,
         project=project,

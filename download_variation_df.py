@@ -4,6 +4,9 @@ import geopandas
 import os
 import sys
 import multiprocessing
+from tqdm import tqdm
+import fetch_landsat_five_L2
+import random
 
 
 def gen_all_lakes_all_dates_params(project, OUT_DIR, days_before_and_after_insitu):
@@ -69,6 +72,12 @@ def gen_all_lakes_all_dates_params(project, OUT_DIR, days_before_and_after_insit
     return all_params
 
 
+def wrapper_export(
+    args,
+):  # this function allows ONE param to be spread onto many params for a function
+    fetch_landsat_five_L2.export_raster_main_landsat_five_L2(*args)
+
+
 if __name__ == "__main__":
     project = sys.argv[1]
     out_dir = sys.argv[2]
@@ -78,19 +87,18 @@ if __name__ == "__main__":
     all_params_to_pass_in = gen_all_lakes_all_dates_params(
         project, out_dir, days_before_and_after_insitu
     )
-    # print(all_params_to_pass_in)
 
-    # open_gee_project(project=project)
-    # manager = multiprocessing.Manager()
-    # scale_cache = manager.dict()  # empty by default
-    # pool = multiprocessing.Pool(25)
+    fetch_landsat_five_L2.open_gee_project(project=project)
+    manager = multiprocessing.Manager()
+    scale_cache = manager.dict()  # empty by default
+    pool = multiprocessing.Pool(25)
 
-    # random.shuffle(all_params_to_pass_in)
+    random.shuffle(all_params_to_pass_in)
 
-    # # Starmap
-    # pool.imap(
-    #     wrapper_export,
-    #     tqdm(all_params_to_pass_in, total=len(all_params_to_pass_in)),
-    # )
-    # pool.close()
-    # pool.join()
+    # Starmap
+    pool.imap(
+        wrapper_export,
+        tqdm(all_params_to_pass_in, total=len(all_params_to_pass_in)),
+    )
+    pool.close()
+    pool.join()

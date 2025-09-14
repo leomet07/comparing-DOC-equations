@@ -25,7 +25,7 @@ def visualize(tif_path: str):
         height = src.height
         width = src.width
         tags = src.tags()
-        title = f"Date: {tags["date"]}, GNIS_ID: {tags["GNIS_ID"]}, Scale: {tags["scale"]}\n"
+        title = f"Date: {tags["date"]}, Permanent_ID: {tags["permanent_id"]}, Scale: {tags["scale"]}\n"
 
         print(f"Number of bands: {num_bands}")
         # print(f"Dimensions: {width} x {height}")
@@ -78,13 +78,13 @@ Import assets from gee depending on which lake you want an image of
 """
 
 
-def import_assets(GNIS_ID: str, projectName: str) -> ee.FeatureCollection:
+def import_assets(permanent_id: str, projectName: str) -> ee.FeatureCollection:
     LakeShp = ee.FeatureCollection(
         f"projects/{projectName}/assets/adk-lakes-gt25km2-200m-bound-clean"
     )
     LakeShp = ee.FeatureCollection(
         LakeShp.filter(
-            ee.Filter.eq("GNIS_ID", GNIS_ID)
+            ee.Filter.eq("Permanent_", permanent_id)
         )  # use SITE_ID or name to get objectid
     )
     return LakeShp
@@ -222,7 +222,7 @@ def export_raster_main_landsat_L2(
     new_metadata = {
         "date": date,
         "closest_insitu_date": insitu_date,  # this was the date from the insitu
-        "GNIS_ID": lakeid,
+        "permanent_id": lakeid,
         "scale": scale,
         "satellite": "landsat5",
         "image_index": image_index,

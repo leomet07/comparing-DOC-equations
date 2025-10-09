@@ -114,8 +114,14 @@ for name_of_interest in lake_names_of_interest:
 truth_data = pd.read_excel(os.path.join("ALTM", "LTM_Data_2023_3_9.xlsx"))
 
 truth_data = truth_data[
-    ["SITE_ID", "DATE_SMP", "DOC_MG_L"]
+    [
+        "SITE_ID",
+        "DATE_SMP",
+        "CHL_A_UG_L",
+    ]
 ]  # don't care abt other columns
+
+truth_data = truth_data.dropna(subset=["CHL_A_UG_L"])
 
 # filter for after landsat 8 launch
 
@@ -139,5 +145,5 @@ if __name__ == "__main__":
         # filter truth data to just this lake
         use_dataset = truth_data[truth_data["OBJECTID"] == float(lake_objectid)]
 
-        mean_doc = use_dataset["DOC_MG_L"].mean()
-        print(f"{lake_name} has a mean DOC of {mean_doc}. {len(use_dataset)} points.")
+        mean_chla = use_dataset["CHL_A_UG_L"].mean()
+        print(f"{lake_name} has a mean CHLA of {mean_chla}. {len(use_dataset)} points.")

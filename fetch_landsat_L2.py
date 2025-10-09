@@ -195,6 +195,7 @@ def get_image_and_date_from_image_collection(coll, index, shp):
     image = ee.Image(coll.toList(coll.size()).get(index))
     image_index = image.get("system:index").getInfo()
     date = ee.Date(image.get("system:time_start")).format("YYYY-MM-dd").getInfo()
+    image = image.multiply(0.0000275).add(-0.2)
     image = image.clip(shp)
     image = image.toFloat()
 

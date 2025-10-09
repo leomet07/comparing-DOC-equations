@@ -54,7 +54,7 @@ def get_bands_from_tif(tif_path):
 
 
 def add_training_entries_from_algorithim_out_folder(out_folder, training_entries):
-    algorithim_name = out_folder.split("_")[-1].upper()
+    algorithim_name = out_folder.split("_")[-1].upper().replace("/", "")
     subfolders = list(os.listdir(out_folder))
     subfolders.sort()
     for subfolder in subfolders:
@@ -69,30 +69,32 @@ def add_training_entries_from_algorithim_out_folder(out_folder, training_entries
             current_training_entry = {}
             tif_filepath = os.path.join(tif_folder_path, filename)
 
-            (
-                bands,
-                profile,
-                transform,
-                scale,
-                x_res,
-                closest_insitu_date,
-                objectid,
-            ) = get_bands_from_tif(tif_filepath)
+            try:
+                (
+                    bands,
+                    profile,
+                    transform,
+                    scale,
+                    x_res,
+                    closest_insitu_date,
+                    objectid,
+                ) = get_bands_from_tif(tif_filepath)
+            except rasterio.errors.RasterioIOError:
+                continue
 
             # matched doc
-            all_doc = inspect_shapefile.truth_data[
+            all_chla = inspect_shapefile.truth_data[
                 (inspect_shapefile.truth_data["OBJECTID"] == float(objectid))
                 & (inspect_shapefile.truth_data["DATE_SMP"] == closest_insitu_date)
-            ]["DOC_MG_L"]
+            ]["CHL_A_UG_L"]
             try:
-                doc = all_doc.item()
+                chla = all_chla.item()
             except ValueError:  # array either has 2+ or 0 items
-                if len(all_doc) > 0:  # means 2+ measurements for that date, take mean
-                    doc = all_doc.mean()
+                if len(all_chla) > 0:  # means 2+ measurements for that date, take mean
+                    chla = all_chla.mean()
                 else:
-                    raise Exception("No DOC values found for that date.")
-            current_training_entry["doc"] = doc
-
+                    raise Exception("No CHLA values found for that date.")
+            current_training_entry["chla"] = chla
             # get lat and long
             centroid_lat = inspect_shapefile.truth_data[
                 (inspect_shapefile.truth_data["OBJECTID"] == float(objectid))
@@ -155,6 +157,10 @@ for folder in sys.argv[1:]:
 
 
 training_df = pd.DataFrame(training_entries)
-print(training_df)
+print("Training df: \n", training_df)
 
-training_df.to_csv("training_data.csv", index=False)
+# first get just the dir name (handles forward slashes) then get basename
+stub = os.path.basename(os.path.dirname(sys.argv[1]))
+csv_filepath = f"{stub}_training_data.csv"
+
+training_df.to_csv(csv_filepath, index=False)
